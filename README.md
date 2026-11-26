@@ -237,9 +237,15 @@ orange = network devices, green = data. Thick arrows carry device traffic; the d
 | Encryption | `cryptography` (Fernet) for device passwords, SHA-256 for backup integrity |
 | Front end | Django templates, plain JavaScript and CSS, no external CDN |
 
+### Code architecture (N-tier)
+
 The code is split into four tiers, **presentation → business → data_access → database** (one top-level folder
-each, with one folder per app inside), plus `core/` shared by all; the rules are checked by
-`python manage.py check_architecture`. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+each, with one folder per app inside), plus `core/` shared by all. A tier only calls the tiers below it, and
+`python manage.py check_architecture` checks this. Example: what happens when an operator presses **Backup now**:
+
+![Backup now: one request through the four tiers](docs/diagrams/backup-now-flow.svg)
+
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [Project structure](#project-structure).
 
 ---
 
@@ -591,6 +597,18 @@ One request always takes the same path, from the top tier down:
 | 3 Data access | `data_access/` | `selectors.py`, `repositories.py` (+ `ssh_client.py`, `audit_log.py`, `syslog_parsers.py`, `vendor_registry.py`) | Every read; backup files on disk; the FreeRADIUS database; SSH to devices |
 | 4 Database | `database/` | `models.py`, `migrations/` | The tables and their fields |
 
+**Example: Backup now, file by file** (diagram: [docs/diagrams/backup-now-flow.svg](docs/diagrams/backup-now-flow.svg))
+
+| Step | Tier | File | What happens |
+|---|---|---|---|
+| 1 | Presentation | `presentation/backups/views.py` | `start_backup()` checks the Operator role; `audit_log.py` records who pressed it and from where |
+| 2 | Business | `business/backups/services.py` | `start_manual_backup()` picks the devices and starts one job |
+| 3 | Business | `business/backups/backup_jobs.py` | `run_job()` pings every device, then backs up many devices in parallel |
+| 4 | Data access | `data_access/backups/ssh_client.py` | `fetch_config()` logs in over SSH and runs the vendor command from `vendor_registry.py` (read only) |
+| 5 | Business | `business/backups/services.py` | `backup_device()` compares with the last version: changed or unchanged |
+| 6 | Data access | `data_access/backups/repositories.py` | `stage_backup()` saves the file under `data/backups/` (all or nothing, SHA-256) |
+| 7 | Database | `database/backups/models.py` | `BackupLog` records the result in MariaDB |
+
 A tier only calls the tiers below it; `python manage.py check_architecture` enforces this.
 Each tier folder has a short README. Server scripts: [deploy/README.md](deploy/README.md).
 A file-by-file guide is in [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md).
@@ -605,7 +623,8 @@ A file-by-file guide is in [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md).
 | [docs/DEPLOY.md](docs/DEPLOY.md) | Install, update, domain, checks, disaster-recovery backup |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Commands to find and fix common problems |
 | [docs/GIT-INSTALL.md](docs/GIT-INSTALL.md) | Install and update from Git, moving data from an old server |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit together |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit together, the four tiers |
+| [docs/diagrams/backup-now-flow.svg](docs/diagrams/backup-now-flow.svg) | Diagram: one Backup now request, file by file |
 | [docs/BACKUP_RELIABILITY.md](docs/BACKUP_RELIABILITY.md) | SSH behaviour and the retry queue |
 | [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md) | Which file does what |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Running locally, adding a page, API or vendor, release checklist |

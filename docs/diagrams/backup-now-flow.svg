@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="790" viewBox="0 0 1320 790" role="img" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <title>BdREN VAULT - Backup now: how one request flows through the four tiers</title>
+  <desc>Step 1 presentation views.py start_backup checks the role and writes the audit entry. Step 2 business services.py start_manual_backup picks the devices and starts a job. Step 3 business backup_jobs.py run_job backs up many devices in parallel. Step 4 data access ssh_client.py fetch_config logs in to the device over SSH with the vendor command. Step 5 business services.py backup_device compares with the last version. Step 6 data access repositories.py saves the file. Step 7 database models.py records BackupLog in MariaDB.</desc>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1L9 5L1 9z" fill="#344054"/>
+    </marker>
+    <marker id="ahs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1L9 5L1 9z" fill="#98A2B3"/>
+    </marker>
+  </defs>
+
+  <rect width="1320" height="790" fill="#FFFFFF"/>
+
+  <!-- title -->
+  <text x="20" y="42" font-size="22" font-weight="600" fill="#101828">Backup now: one request through the four tiers</text>
+  <text x="20" y="68" font-size="14" fill="#475467">An operator presses "Backup now" on Device Inventory. Numbers show the order; every step calls a file in the same or a lower tier.</text>
+
+  <!-- lanes -->
+  <rect x="20" y="96" width="1280" height="150" rx="10" fill="#F4F3FF"/>
+  <rect x="20" y="252" width="1280" height="150" rx="10" fill="#ECFDF3"/>
+  <rect x="20" y="408" width="1280" height="150" rx="10" fill="#FFF6ED"/>
+  <rect x="20" y="564" width="1280" height="150" rx="10" fill="#F2F4F7"/>
+
+  <!-- lane headers -->
+  <rect x="20" y="96" width="176" height="150" rx="10" fill="#6941C6"/>
+  <text x="38" y="140" font-size="12" font-weight="600" fill="#E9D7FE" letter-spacing="1">TIER 1</text>
+  <text x="38" y="164" font-size="17" font-weight="600" fill="#FFFFFF">Presentation</text>
+  <text x="38" y="186" font-size="12" fill="#E9D7FE">presentation/backups/</text>
+  <text x="38" y="206" font-size="12" fill="#E9D7FE">request in, answer out</text>
+
+  <rect x="20" y="252" width="176" height="150" rx="10" fill="#067647"/>
+  <text x="38" y="296" font-size="12" font-weight="600" fill="#ABEFC6" letter-spacing="1">TIER 2</text>
+  <text x="38" y="320" font-size="17" font-weight="600" fill="#FFFFFF">Business logic</text>
+  <text x="38" y="342" font-size="12" fill="#ABEFC6">business/backups/</text>
+  <text x="38" y="362" font-size="12" fill="#ABEFC6">rules and every change</text>
+
+  <rect x="20" y="408" width="176" height="150" rx="10" fill="#C4320A"/>
+  <text x="38" y="452" font-size="12" font-weight="600" fill="#FEDDC7" letter-spacing="1">TIER 3</text>
+  <text x="38" y="476" font-size="17" font-weight="600" fill="#FFFFFF">Data access</text>
+  <text x="38" y="498" font-size="12" fill="#FEDDC7">data_access/backups/</text>
+  <text x="38" y="518" font-size="12" fill="#FEDDC7">reads, files, SSH</text>
+
+  <rect x="20" y="564" width="176" height="150" rx="10" fill="#344054"/>
+  <text x="38" y="608" font-size="12" font-weight="600" fill="#D0D5DD" letter-spacing="1">TIER 4</text>
+  <text x="38" y="632" font-size="17" font-weight="600" fill="#FFFFFF">Database</text>
+  <text x="38" y="654" font-size="12" fill="#D0D5DD">database/backups/</text>
+  <text x="38" y="674" font-size="12" fill="#D0D5DD">tables and fields</text>
+
+  <!-- ===== connectors (drawn first, boxes on top) ===== -->
+  <g fill="none" stroke="#344054" stroke-width="1.6">
+    <path d="M347 171H421V282" marker-end="url(#ah)"/>
+    <path d="M483 327H492" marker-end="url(#ah)"/>
+    <path d="M619 327H693V438" marker-end="url(#ah)"/>
+    <path d="M755 483H829V372" marker-end="url(#ah)"/>
+    <path d="M891 327H965V438" marker-end="url(#ah)"/>
+    <path d="M1027 483H1101V594" marker-end="url(#ah)"/>
+  </g>
+  <g fill="none" stroke="#98A2B3" stroke-width="1.4" stroke-dasharray="5 4">
+    <path d="M285 213V438" marker-end="url(#ahs)"/>
+    <path d="M631 483H622" marker-end="url(#ahs)"/>
+    <path d="M693 528V612" marker-start="url(#ahs)" marker-end="url(#ahs)"/>
+    <path d="M965 525V612" marker-end="url(#ahs)"/>
+    <path d="M1163 648H1172" marker-end="url(#ahs)"/>
+  </g>
+
+  <!-- ===== step boxes ===== -->
+  <!-- 1 views.py -->
+  <rect x="223" y="129" width="124" height="84" rx="8" fill="#FFFFFF" stroke="#6941C6" stroke-width="1.5"/>
+  <text x="285" y="160" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">views.py</text>
+  <text x="285" y="180" font-size="11" fill="#6941C6" text-anchor="middle" font-family="Consolas, 'Courier New', monospace">start_backup()</text>
+  <text x="285" y="198" font-size="11" fill="#475467" text-anchor="middle">operator role check</text>
+  <circle cx="223" cy="129" r="12" fill="#6941C6"/><text x="223" y="133.5" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text>
+
+  <!-- 2 services.py start -->
+  <rect x="359" y="285" width="124" height="84" rx="8" fill="#FFFFFF" stroke="#067647" stroke-width="1.5"/>
+  <text x="421" y="316" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">services.py</text>
+  <text x="421" y="336" font-size="10" fill="#067647" text-anchor="middle" font-family="Consolas, 'Courier New', monospace">start_manual_backup</text>
+  <text x="421" y="354" font-size="11" fill="#475467" text-anchor="middle">pick devices, start job</text>
+  <circle cx="359" cy="285" r="12" fill="#067647"/><text x="359" y="289.5" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">2</text>
+
+  <!-- 3 backup_jobs.py -->
+  <rect x="495" y="285" width="124" height="84" rx="8" fill="#FFFFFF" stroke="#067647" stroke-width="1.5"/>
+  <text x="557" y="316" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">backup_jobs.py</text>
+  <text x="557" y="336" font-size="11" fill="#067647" text-anchor="middle" font-family="Consolas, 'Courier New', monospace">run_job()</text>
+  <text x="557" y="354" font-size="11" fill="#475467" text-anchor="middle">parallel, ping first</text>
+  <circle cx="495" cy="285" r="12" fill="#067647"/><text x="495" y="289.5" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">3</text>
+
+  <!-- 4 ssh_client.py -->
+  <rect x="631" y="441" width="124" height="84" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-width="1.5"/>
+  <text x="693" y="472" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">ssh_client.py</text>
+  <text x="693" y="492" font-size="11" fill="#C4320A" text-anchor="middle" font-family="Consolas, 'Courier New', monospace">fetch_config()</text>
+  <text x="693" y="510" font-size="11" fill="#475467" text-anchor="middle">SSH, read config</text>
+  <circle cx="631" cy="441" r="12" fill="#C4320A"/><text x="631" y="445.5" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">4</text>
+
+  <!-- 5 services.py compare -->
+  <rect x="767" y="285" width="124" height="84" rx="8" fill="#FFFFFF" stroke="#067647" stroke-width="1.5"/>
+  <text x="829" y="316" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">services.py</text>
+  <text x="829" y="336" font-size="11" fill="#067647" text-anchor="middle" font-family="Consolas, 'Courier New', monospace">backup_device()</text>
+  <text x="829" y="354" font-size="11" fill="#475467" text-anchor="middle">changed or unchanged?</text>
+  <circle cx="767" cy="285" r="12" fill="#067647"/><text x="767" y="289.5" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">5</text>
+
+  <!-- 6 repositories.py -->
+  <rect x="903" y="441" width="124" height="84" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-width="1.5"/>
+  <text x="965" y="472" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">repositories.py</text>
+  <text x="965" y="492" font-size="11" fill="#C4320A" text-anchor="middle" font-family="Consolas, 'Courier New', monospace">stage_backup()</text>
+  <text x="965" y="510" font-size="11" fill="#475467" text-anchor="middle">save file safely</text>
+  <circle cx="903" cy="441" r="12" fill="#C4320A"/><text x="903" y="445.5" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">6</text>
+
+  <!-- 7 models.py -->
+  <rect x="1039" y="597" width="124" height="84" rx="8" fill="#FFFFFF" stroke="#344054" stroke-width="1.5"/>
+  <text x="1101" y="628" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">models.py</text>
+  <text x="1101" y="648" font-size="11" fill="#344054" text-anchor="middle" font-family="Consolas, 'Courier New', monospace">BackupLog</text>
+  <text x="1101" y="666" font-size="11" fill="#475467" text-anchor="middle">result recorded</text>
+  <circle cx="1039" cy="597" r="12" fill="#344054"/><text x="1039" y="601.5" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">7</text>
+
+  <!-- ===== helper files (same tier, no number) ===== -->
+  <rect x="223" y="441" width="124" height="84" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-width="1" stroke-dasharray="0"/>
+  <text x="285" y="472" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">audit_log.py</text>
+  <text x="285" y="492" font-size="11" fill="#C4320A" text-anchor="middle" font-family="Consolas, 'Courier New', monospace">record_audit()</text>
+  <text x="285" y="510" font-size="11" fill="#475467" text-anchor="middle">who, when, from where</text>
+
+  <rect x="495" y="441" width="124" height="84" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-width="1"/>
+  <text x="557" y="472" font-size="12.5" font-weight="600" fill="#101828" text-anchor="middle">vendor_registry.py</text>
+  <text x="557" y="492" font-size="11" fill="#C4320A" text-anchor="middle" font-family="Consolas, 'Courier New', monospace">VENDORS</text>
+  <text x="557" y="510" font-size="11" fill="#475467" text-anchor="middle">command per vendor</text>
+
+  <!-- ===== outside the application (dashed) ===== -->
+  <rect x="631" y="615" width="124" height="66" rx="8" fill="#FFFFFF" stroke="#667085" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="693" y="642" font-size="12.5" font-weight="600" fill="#344054" text-anchor="middle">Network device</text>
+  <text x="693" y="662" font-size="11" fill="#667085" text-anchor="middle">show running-config</text>
+
+  <rect x="903" y="615" width="124" height="66" rx="8" fill="#FFFFFF" stroke="#667085" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="965" y="642" font-size="12.5" font-weight="600" fill="#344054" text-anchor="middle">Disk</text>
+  <text x="965" y="662" font-size="11" fill="#667085" text-anchor="middle">data/backups/</text>
+
+  <rect x="1175" y="615" width="110" height="66" rx="8" fill="#FFFFFF" stroke="#667085" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="1230" y="642" font-size="12.5" font-weight="600" fill="#344054" text-anchor="middle">MariaDB</text>
+  <text x="1230" y="662" font-size="11" fill="#667085" text-anchor="middle">dbms database</text>
+
+  <!-- legend -->
+  <g font-size="12" fill="#475467">
+    <circle cx="32" cy="744" r="9" fill="#344054"/><text x="32" y="748" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text>
+    <text x="50" y="748">order of the steps</text>
+    <line x1="190" y1="744" x2="226" y2="744" stroke="#344054" stroke-width="1.6" marker-end="url(#ah)"/>
+    <text x="236" y="748">main call</text>
+    <line x1="320" y1="744" x2="356" y2="744" stroke="#98A2B3" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ahs)"/>
+    <text x="366" y="748">helper call</text>
+    <rect x="460" y="734" width="34" height="20" rx="4" fill="#FFFFFF" stroke="#667085" stroke-dasharray="5 4"/>
+    <text x="504" y="748">outside the application</text>
+    <text x="20" y="774" fill="#667085">Rule: a tier only calls the tiers below it (and its own tier). Checked by  python manage.py check_architecture</text>
+  </g>
+</svg>

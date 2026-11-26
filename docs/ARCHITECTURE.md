@@ -63,6 +63,20 @@ tiers **below** it:
 One feature is always found the same way: `presentation/devices/views.py` → `business/devices/services.py`
 → `data_access/devices/selectors.py` → `database/devices/models.py`. Each tier folder has its own README.
 
+### Example: Backup now, file by file
+
+![Backup now: one request through the four tiers](diagrams/backup-now-flow.svg)
+
+| Step | Tier | File | What happens |
+|---|---|---|---|
+| 1 | Presentation | `presentation/backups/views.py` | `start_backup()` checks the Operator role; `audit_log.py` records who pressed it and from where |
+| 2 | Business | `business/backups/services.py` | `start_manual_backup()` picks the devices and starts one job |
+| 3 | Business | `business/backups/backup_jobs.py` | `run_job()` pings every device, then backs up many devices in parallel |
+| 4 | Data access | `data_access/backups/ssh_client.py` | `fetch_config()` logs in over SSH and runs the vendor command from `vendor_registry.py` (read only) |
+| 5 | Business | `business/backups/services.py` | `backup_device()` compares with the last version: changed or unchanged |
+| 6 | Data access | `data_access/backups/repositories.py` | `stage_backup()` saves the file under `data/backups/` (all or nothing, SHA-256) |
+| 7 | Database | `database/backups/models.py` | `BackupLog` records the result in MariaDB |
+
 | App | presentation: views.py | business: services.py | data_access: selectors.py | other files |
 |---|---|---|---|---|
 | `accounts` | sign-in pages, `/api/me`, `/api/users` | password rules, lockout, user changes | users, sign-in history | |
@@ -85,7 +99,7 @@ Maintenance commands (`core/management/commands/`) may use any app's models dire
 python manage.py check_architecture        # "Architecture OK" or the file, line and rule broken
 ```
 
-The rules themselves are in `core/architecture.py`; the test suite runs the same check.
+The rules themselves are in `core/architecture.py`; run the check before every release.
 
 ## Pages: one URL per screen
 
