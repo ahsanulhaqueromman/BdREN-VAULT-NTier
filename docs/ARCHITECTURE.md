@@ -5,23 +5,10 @@ How the VAULT is put together. For "which file does what", see
 
 ## Components
 
-```
- Browser ──HTTPS──> nginx :443 ──> waitress (manage.py serve, service "vault") ──> Django app
-                                                                                  │
-            ┌──────────────────────────────┬──────────────────────────┬──────────┴─────────────┐
-            │ MySQL "dbms"                  │ MySQL "radius"            │ data/ folder            │
-            │ devices, jobs, logs, users,   │ FreeRADIUS tables: users, │ backups/ (snapshots)    │
-            │ settings, audit               │ groups, NAS, login log    │ secret.key, known_hosts │
-            └──────────────────────────────┴─────────────┬────────────┴────────────────────────┘
-                                                         │ read on every login
- Switch / router ──RADIUS UDP 1812──> FreeRADIUS 3 ──────┘
- Switch / router ──syslog UDP 514───> syslog receiver (manage.py syslog_receive, service "vault-syslog")
-                                      ──> MySQL "dbms" (Session Log)
- Backup engine ──SSH 22 / ICMP──> switches, routers, OLTs, firewalls
-```
+![System architecture](diagrams/system-architecture.svg)
 
-- **Django app** (one process): web pages, JSON API, the SSH backup engine, the scheduler and the ping monitor
-  (background threads started by `core/background.py`).
+- **VAULT application** (one process, service `vault`): web pages, JSON API, the SSH backup engine, the
+  scheduler and the ping monitor (background threads started by `core/background.py`).
 - **Syslog receiver** (its own process): turns the devices' syslog into Session Log logins, commands and
   changes. It accepts only NAS Clients addresses, at most 200 messages a second per device.
 - **FreeRADIUS** never talks to the app. Both use the `radius` database, so a user, level, device limit or new
@@ -31,27 +18,9 @@ How the VAULT is put together. For "which file does what", see
 
 The code is split into four tiers, one top-level folder each. Inside every tier there is one folder per app
 (`accounts`, `devices`, `backups`, `scheduling`, `monitoring`, `radius`, `commandlog`). A tier may only use the
-tiers **below** it:
+tiers **below** it.
 
-```
- presentation/<app>/    TIER 1  PRESENTATION    read the request → call business / data access → answer (JSON / page)
-   views.py urls.py                             + record the audit entry (it needs the request: user and IP)
-   serializers.py                               object → JSON (passwords never leave the server)
-   templates/ static/                           HTML, CSS, JavaScript
-     │
-     ▼
- business/<app>/        TIER 2  BUSINESS LOGIC  rules and every change: validation, writes, transactions
-   services.py                                  + background work: backup_jobs.py (backup jobs), syslog_receiver.py (syslog)
-     │
-     ▼
- data_access/<app>/     TIER 3  DATA ACCESS     every database read; selectors never change anything
-   selectors.py                                 + repositories.py (backup files, the radius database),
-   repositories.py                                ssh_client.py (SSH), syslog_parsers.py (syslog formats), audit_log.py
-     │
-     ▼
- database/<app>/        TIER 4  DATABASE        tables and fields only
-   models.py migrations/
-```
+![N-tier architecture](diagrams/n-tier-architecture.svg)
 
 | Tier | Folder | Files | Main job |
 |---|---|---|---|

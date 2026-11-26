@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="700" viewBox="0 0 1320 700" role="img" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+<title>BdREN VAULT - N-tier architecture: four tiers, one folder per app in each tier</title>
+<desc>Rows are the four tiers (presentation, business, data access, database); columns are the seven apps. Each cell lists the real files of that app in that tier. core/ and config/ are shared by every tier.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L9 5L1 9z" fill="#344054"/></marker></defs>
+<rect width="1320" height="700" fill="#FFFFFF"/>
+<text x="20" y="42" font-size="22" font-weight="600" fill="#101828">N-tier architecture: four tiers, one folder per app</text>
+<text x="20" y="68" font-size="14" fill="#475467">Rows are tiers (top-level folders), columns are apps. Each cell is a real folder, for example business/backups/. Calls go downwards only.</text>
+<rect x="213.0" y="92" width="118.9" height="46" rx="8" fill="#FFFFFF" stroke="#D0D5DD"/>
+<text x="272.4" y="112" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">accounts</text>
+<text x="272.4" y="129" font-size="11" fill="#667085" text-anchor="middle">users, sign-in</text>
+<rect x="337.9" y="92" width="118.9" height="46" rx="8" fill="#FFFFFF" stroke="#D0D5DD"/>
+<text x="397.3" y="112" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">devices</text>
+<text x="397.3" y="129" font-size="11" fill="#667085" text-anchor="middle">inventory</text>
+<rect x="462.7" y="92" width="118.9" height="46" rx="8" fill="#FFFFFF" stroke="#D0D5DD"/>
+<text x="522.1" y="112" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">backups</text>
+<text x="522.1" y="129" font-size="11" fill="#667085" text-anchor="middle">config backups</text>
+<rect x="587.6" y="92" width="118.9" height="46" rx="8" fill="#FFFFFF" stroke="#D0D5DD"/>
+<text x="647.0" y="112" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">scheduling</text>
+<text x="647.0" y="129" font-size="11" fill="#667085" text-anchor="middle">settings, timer</text>
+<rect x="712.4" y="92" width="118.9" height="46" rx="8" fill="#FFFFFF" stroke="#D0D5DD"/>
+<text x="771.9" y="112" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">monitoring</text>
+<text x="771.9" y="129" font-size="11" fill="#667085" text-anchor="middle">ping, dashboard</text>
+<rect x="837.3" y="92" width="118.9" height="46" rx="8" fill="#FFFFFF" stroke="#D0D5DD"/>
+<text x="896.7" y="112" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">radius</text>
+<text x="896.7" y="129" font-size="11" fill="#667085" text-anchor="middle">AAA, NAS</text>
+<rect x="962.1" y="92" width="118.9" height="46" rx="8" fill="#FFFFFF" stroke="#D0D5DD"/>
+<text x="1021.6" y="112" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">commandlog</text>
+<text x="1021.6" y="129" font-size="11" fill="#667085" text-anchor="middle">session log</text>
+<text x="22" y="112" font-size="12" font-weight="600" fill="#475467" letter-spacing="1">TIER</text>
+<text x="22" y="129" font-size="11" fill="#667085">folder / app</text>
+<rect x="20" y="150" width="1064" height="112" rx="10" fill="#F4F3FF"/>
+<rect x="20" y="150" width="176" height="112" rx="10" fill="#6941C6"/>
+<text x="36" y="180" font-size="12" font-weight="600" fill="#E9D7FE" letter-spacing="1">TIER 1</text>
+<text x="36" y="204" font-size="17" font-weight="600" fill="#FFFFFF">Presentation</text>
+<text x="36" y="225" font-size="12" fill="#E9D7FE" font-family="Consolas, 'Courier New', monospace">presentation/</text>
+<text x="36" y="244" font-size="12" fill="#E9D7FE">request in, answer out</text>
+<rect x="213.0" y="158" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#6941C6" stroke-opacity="0.45"/>
+<text x="272.4" y="201.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#6941C6" font-weight="700" text-anchor="middle">views.py</text>
+<text x="272.4" y="218.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">urls.py</text>
+<rect x="337.9" y="158" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#6941C6" stroke-opacity="0.45"/>
+<text x="397.3" y="193.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#6941C6" font-weight="700" text-anchor="middle">views.py</text>
+<text x="397.3" y="210.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">urls.py</text>
+<text x="397.3" y="227.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">serializers.py</text>
+<rect x="462.7" y="158" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#6941C6" stroke-opacity="0.45"/>
+<text x="522.1" y="201.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#6941C6" font-weight="700" text-anchor="middle">views.py</text>
+<text x="522.1" y="218.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">urls.py</text>
+<rect x="587.6" y="158" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#6941C6" stroke-opacity="0.45"/>
+<text x="647.0" y="201.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#6941C6" font-weight="700" text-anchor="middle">views.py</text>
+<text x="647.0" y="218.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">urls.py</text>
+<rect x="712.4" y="158" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#6941C6" stroke-opacity="0.45"/>
+<text x="771.9" y="201.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#6941C6" font-weight="700" text-anchor="middle">views.py</text>
+<text x="771.9" y="218.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">urls.py</text>
+<rect x="837.3" y="158" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#6941C6" stroke-opacity="0.45"/>
+<text x="896.7" y="201.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#6941C6" font-weight="700" text-anchor="middle">views.py</text>
+<text x="896.7" y="218.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">urls.py</text>
+<rect x="962.1" y="158" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#6941C6" stroke-opacity="0.45"/>
+<text x="1021.6" y="201.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#6941C6" font-weight="700" text-anchor="middle">views.py</text>
+<text x="1021.6" y="218.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">urls.py</text>
+<rect x="20" y="270" width="1064" height="112" rx="10" fill="#ECFDF3"/>
+<rect x="20" y="270" width="176" height="112" rx="10" fill="#067647"/>
+<text x="36" y="300" font-size="12" font-weight="600" fill="#ABEFC6" letter-spacing="1">TIER 2</text>
+<text x="36" y="324" font-size="17" font-weight="600" fill="#FFFFFF">Business logic</text>
+<text x="36" y="345" font-size="12" fill="#ABEFC6" font-family="Consolas, 'Courier New', monospace">business/</text>
+<text x="36" y="364" font-size="12" fill="#ABEFC6">rules and every change</text>
+<rect x="213.0" y="278" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#067647" stroke-opacity="0.45"/>
+<text x="272.4" y="330.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#067647" font-weight="700" text-anchor="middle">services.py</text>
+<rect x="337.9" y="278" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#067647" stroke-opacity="0.45"/>
+<text x="397.3" y="330.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#067647" font-weight="700" text-anchor="middle">services.py</text>
+<rect x="462.7" y="278" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#067647" stroke-opacity="0.45"/>
+<text x="522.1" y="313.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#067647" font-weight="700" text-anchor="middle">services.py</text>
+<text x="522.1" y="330.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">backup_jobs.py</text>
+<text x="522.1" y="347.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">change_reports.py</text>
+<rect x="587.6" y="278" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#067647" stroke-opacity="0.45"/>
+<text x="647.0" y="330.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#067647" font-weight="700" text-anchor="middle">services.py</text>
+<rect x="712.4" y="278" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#067647" stroke-opacity="0.45"/>
+<text x="771.9" y="330.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#067647" font-weight="700" text-anchor="middle">services.py</text>
+<rect x="837.3" y="278" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#067647" stroke-opacity="0.45"/>
+<text x="896.7" y="330.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#067647" font-weight="700" text-anchor="middle">services.py</text>
+<rect x="962.1" y="278" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#067647" stroke-opacity="0.45"/>
+<text x="1021.6" y="321.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#067647" font-weight="700" text-anchor="middle">services.py</text>
+<text x="1021.6" y="338.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">syslog_receiver.py</text>
+<rect x="20" y="390" width="1064" height="112" rx="10" fill="#FFF6ED"/>
+<rect x="20" y="390" width="176" height="112" rx="10" fill="#C4320A"/>
+<text x="36" y="420" font-size="12" font-weight="600" fill="#FEDDC7" letter-spacing="1">TIER 3</text>
+<text x="36" y="444" font-size="17" font-weight="600" fill="#FFFFFF">Data access</text>
+<text x="36" y="465" font-size="12" fill="#FEDDC7" font-family="Consolas, 'Courier New', monospace">data_access/</text>
+<text x="36" y="484" font-size="12" fill="#FEDDC7">reads, files, SSH</text>
+<rect x="213.0" y="398" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-opacity="0.45"/>
+<text x="272.4" y="450.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#C4320A" font-weight="700" text-anchor="middle">selectors.py</text>
+<rect x="337.9" y="398" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-opacity="0.45"/>
+<text x="397.3" y="441.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#C4320A" font-weight="700" text-anchor="middle">selectors.py</text>
+<text x="397.3" y="458.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">vendor_registry.py</text>
+<rect x="462.7" y="398" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-opacity="0.45"/>
+<text x="522.1" y="424.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#C4320A" font-weight="700" text-anchor="middle">selectors.py</text>
+<text x="522.1" y="441.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">repositories.py</text>
+<text x="522.1" y="458.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">ssh_client.py</text>
+<text x="522.1" y="475.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">audit_log.py</text>
+<rect x="587.6" y="398" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-opacity="0.45"/>
+<text x="647.0" y="450.0" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#C4320A" font-weight="700" text-anchor="middle">selectors.py</text>
+<rect x="712.4" y="398" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-opacity="0.45"/>
+<text x="771.9" y="441.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#C4320A" font-weight="700" text-anchor="middle">selectors.py</text>
+<text x="771.9" y="458.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">cache_keys.py</text>
+<rect x="837.3" y="398" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-opacity="0.45"/>
+<text x="896.7" y="441.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#C4320A" font-weight="700" text-anchor="middle">selectors.py</text>
+<text x="896.7" y="458.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">repositories.py</text>
+<rect x="962.1" y="398" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#C4320A" stroke-opacity="0.45"/>
+<text x="1021.6" y="441.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#C4320A" font-weight="700" text-anchor="middle">selectors.py</text>
+<text x="1021.6" y="458.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">syslog_parsers.py</text>
+<rect x="20" y="510" width="1064" height="112" rx="10" fill="#F2F4F7"/>
+<rect x="20" y="510" width="176" height="112" rx="10" fill="#344054"/>
+<text x="36" y="540" font-size="12" font-weight="600" fill="#D0D5DD" letter-spacing="1">TIER 4</text>
+<text x="36" y="564" font-size="17" font-weight="600" fill="#FFFFFF">Database</text>
+<text x="36" y="585" font-size="12" fill="#D0D5DD" font-family="Consolas, 'Courier New', monospace">database/</text>
+<text x="36" y="604" font-size="12" fill="#D0D5DD">tables and fields</text>
+<rect x="213.0" y="518" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#344054" stroke-opacity="0.45"/>
+<text x="272.4" y="561.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#344054" font-weight="700" text-anchor="middle">models.py</text>
+<text x="272.4" y="578.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">migrations/</text>
+<rect x="337.9" y="518" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#344054" stroke-opacity="0.45"/>
+<text x="397.3" y="561.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#344054" font-weight="700" text-anchor="middle">models.py</text>
+<text x="397.3" y="578.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">migrations/</text>
+<rect x="462.7" y="518" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#344054" stroke-opacity="0.45"/>
+<text x="522.1" y="561.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#344054" font-weight="700" text-anchor="middle">models.py</text>
+<text x="522.1" y="578.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">migrations/</text>
+<rect x="587.6" y="518" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#344054" stroke-opacity="0.45"/>
+<text x="647.0" y="561.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#344054" font-weight="700" text-anchor="middle">models.py</text>
+<text x="647.0" y="578.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">migrations/</text>
+<rect x="712.4" y="518" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#344054" stroke-opacity="0.45"/>
+<text x="771.9" y="561.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#344054" font-weight="700" text-anchor="middle">models.py</text>
+<text x="771.9" y="578.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">migrations/</text>
+<rect x="837.3" y="518" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#344054" stroke-opacity="0.45"/>
+<text x="896.7" y="561.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#344054" font-weight="700" text-anchor="middle">models.py</text>
+<text x="896.7" y="578.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">migrations/</text>
+<rect x="962.1" y="518" width="118.9" height="96" rx="8" fill="#FFFFFF" stroke="#344054" stroke-opacity="0.45"/>
+<text x="1021.6" y="561.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#344054" font-weight="700" text-anchor="middle">models.py</text>
+<text x="1021.6" y="578.5" font-size="11" font-family="Consolas, 'Courier New', monospace" fill="#475467" font-weight="400" text-anchor="middle">migrations/</text>
+<rect x="1100" y="92" width="200" height="530" rx="10" fill="#F9FAFB" stroke="#D0D5DD" stroke-dasharray="6 4"/>
+<text x="1118" y="122" font-size="12" font-weight="600" fill="#475467" letter-spacing="1">SHARED BY ALL TIERS</text>
+<text x="1118" y="150" font-size="14" font-weight="600" fill="#101828" font-family="Consolas, 'Courier New', monospace">core/</text>
+<text x="1118" y="170" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">pages.py</text>
+<text x="1220" y="170" font-size="11" fill="#667085">pages, menu</text>
+<text x="1118" y="187" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">api.py</text>
+<text x="1220" y="187" font-size="11" fill="#667085">role check</text>
+<text x="1118" y="204" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">middleware.py</text>
+<text x="1220" y="204" font-size="11" fill="#667085">security</text>
+<text x="1118" y="221" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">background.py</text>
+<text x="1220" y="221" font-size="11" fill="#667085">timers</text>
+<text x="1118" y="238" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">crypto.py</text>
+<text x="1220" y="238" font-size="11" fill="#667085">encryption</text>
+<text x="1118" y="255" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">architecture.py</text>
+<text x="1220" y="255" font-size="11" fill="#667085">tier rules</text>
+<text x="1118" y="272" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">management/</text>
+<text x="1220" y="272" font-size="11" fill="#667085">commands</text>
+<text x="1118" y="303" font-size="14" font-weight="600" fill="#101828" font-family="Consolas, 'Courier New', monospace">config/</text>
+<text x="1118" y="323" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">settings/</text>
+<text x="1220" y="323" font-size="11" fill="#667085">base, prod, dev</text>
+<text x="1118" y="340" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">urls.py</text>
+<text x="1220" y="340" font-size="11" fill="#667085">URL table</text>
+<text x="1118" y="357" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">wsgi.py</text>
+<text x="1220" y="357" font-size="11" fill="#667085">entry point</text>
+<text x="1118" y="388" font-size="14" font-weight="600" fill="#101828" font-family="Consolas, 'Courier New', monospace">presentation/</text>
+<text x="1118" y="408" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">templates/</text>
+<text x="1220" y="408" font-size="11" fill="#667085">HTML</text>
+<text x="1118" y="425" font-size="11" fill="#344054" font-family="Consolas, 'Courier New', monospace">static/</text>
+<text x="1220" y="425" font-size="11" fill="#667085">CSS, JS, images</text>
+<text x="20" y="670" font-size="12" fill="#475467"><tspan font-weight="700" fill="#101828" font-family="Consolas, 'Courier New', monospace">bold</tspan> = the main file of each tier (views, services, selectors, models)   ·   a tier only calls the tiers below it   ·   checked by <tspan font-family="Consolas, 'Courier New', monospace">python manage.py check_architecture</tspan></text>
+<text x="20" y="690" font-size="12" fill="#667085">database/&lt;app&gt;/ also holds apps.py and admin.py (Django registration). The app label never changes, so tables and migrations stay the same.</text>
+</svg>

@@ -155,75 +155,20 @@ RADIUS / AAA, User Management and System Settings are for administrators; see [R
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    Browser["Users<br/>web browser"]
+### System architecture
 
-    subgraph APP["VAULT application · service vault"]
-        direction TB
-        Nginx["nginx<br/>HTTPS · TLS · login rate limit"]
-        Web["Web portal and API<br/>Django 5.2 · Waitress"]
-        Engine["Backup engine and background tasks<br/>schedule · ping monitor · retry queue · daily clean-up"]
-        Nginx --> Web
-        Web -->|"start backups"| Engine
-    end
-
-    Dev["Network devices<br/>switches · routers · firewalls · OLTs"]
-
-    subgraph AAA["Access control and logging"]
-        direction TB
-        FR["FreeRADIUS 3<br/>service freeradius"]
-        Syslog["Syslog receiver<br/>service vault-syslog"]
-    end
-
-    subgraph DATA["Data on the server"]
-        direction TB
-        RAD[("MariaDB · radius<br/>RADIUS users · NAS · login records")]
-        DBMS[("MariaDB · dbms<br/>devices · jobs · logs · users · Session Log")]
-        Files[("Saved configurations<br/>data/backups · SHA-256")]
-    end
-
-    Browser -->|"HTTPS · TCP 443"| Nginx
-    Engine ==>|"SSH · TCP 22 · read only"| Dev
-    Engine -.->|"ICMP ping"| Dev
-    Dev ==>|"RADIUS · UDP 1812 / 1813"| FR
-    Dev ==>|"syslog · UDP 514"| Syslog
-    FR -->|"check and record logins"| RAD
-    Syslog -->|"sessions and commands"| DBMS
-    Web -->|"manage users and NAS"| RAD
-    Web --> DBMS
-    Engine -->|"new versions only"| Files
-
-    classDef user fill:#475569,stroke:#334155,color:#ffffff
-    classDef edge fill:#0e7fa8,stroke:#0b5f7d,color:#ffffff
-    classDef app fill:#2f5bea,stroke:#1e3a8a,color:#ffffff
-    classDef aaa fill:#7c3aed,stroke:#5b21b6,color:#ffffff
-    classDef store fill:#0a7a54,stroke:#065f46,color:#ffffff
-    classDef device fill:#b45309,stroke:#7c2d12,color:#ffffff
-    class Browser user
-    class Nginx edge
-    class Web,Engine app
-    class FR,Syslog aaa
-    class DBMS,RAD,Files store
-    class Dev device
-    style APP fill:#2f5bea14,stroke:#2f5bea,stroke-width:1px
-    style AAA fill:#7c3aed14,stroke:#7c3aed,stroke-width:1px
-    style DATA fill:#0a7a5414,stroke:#0a7a54,stroke-width:1px
-```
+![System architecture](docs/diagrams/system-architecture.svg)
 
 **How the parts work together**
 
 1. **Portal:** people use the portal over HTTPS; nginx passes requests to the VAULT application, which keeps
    its data in the `dbms` database and manages RADIUS users and NAS clients in the `radius` database.
-2. **Backups:** the backup engine signs in to each device over SSH, reads the configuration (never changes
-   it) and saves a new file only when the configuration changed. It also pings every device for the Dashboard.
+2. **Backups:** the background tasks sign in to each device over SSH, read the configuration (never change
+   it) and save a new file only when the configuration changed. They also ping every device for the Dashboard.
 3. **Device logins:** devices ask FreeRADIUS whether a user may log in; FreeRADIUS answers from the `radius`
    database and records every attempt. This keeps working while the web application restarts.
 4. **Session Log:** devices send their syslog to the receiver, which turns logins, commands and changes into
    sessions in the `dbms` database.
-
-Colours: grey = people, teal = web server, blue = VAULT application, purple = access control and logging,
-orange = network devices, green = data. Thick arrows carry device traffic; the dotted arrow is the ping monitor.
 
 | Layer | Technology |
 |---|---|
@@ -239,13 +184,17 @@ orange = network devices, green = data. Thick arrows carry device traffic; the d
 
 ### Code architecture (N-tier)
 
-The code is split into four tiers, **presentation → business → data_access → database** (one top-level folder
-each, with one folder per app inside), plus `core/` shared by all. A tier only calls the tiers below it, and
-`python manage.py check_architecture` checks this. Example: what happens when an operator presses **Backup now**:
+The code is split into four tiers, **presentation → business → data_access → database**: one top-level folder
+per tier, and inside each tier one folder per app. `core/` and `config/` are shared by every tier. A tier only
+calls the tiers below it; `python manage.py check_architecture` checks this.
+
+![N-tier architecture](docs/diagrams/n-tier-architecture.svg)
+
+**One request, file by file.** What happens when an operator presses **Backup now**:
 
 ![Backup now: one request through the four tiers](docs/diagrams/backup-now-flow.svg)
 
-Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [Project structure](#project-structure).
+More: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [Project structure](#project-structure).
 
 ---
 
@@ -572,23 +521,7 @@ BdREN-VAULT/
 └── requirements.txt
 ```
 
-One request always takes the same path, from the top tier down:
-
-```
- Browser ──HTTPS──> presentation/<app>/views.py      check the role, read the request
-                       │
-                       ▼
-                    business/<app>/services.py       rules and every change
-                       │
-                       ▼
-                    data_access/<app>/selectors.py   every read (+ repositories.py: files, FreeRADIUS DB)
-                       │
-                       ▼
-                    database/<app>/models.py         tables and fields
-                       │
-                       ▼
-                    MariaDB (dbms, radius)
-```
+The diagrams of the four tiers are in [Architecture](#code-architecture-n-tier).
 
 | Tier | Folder | Files | Main job |
 |---|---|---|---|
@@ -624,7 +557,7 @@ A file-by-file guide is in [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md).
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Commands to find and fix common problems |
 | [docs/GIT-INSTALL.md](docs/GIT-INSTALL.md) | Install and update from Git, moving data from an old server |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit together, the four tiers |
-| [docs/diagrams/backup-now-flow.svg](docs/diagrams/backup-now-flow.svg) | Diagram: one Backup now request, file by file |
+| [docs/diagrams/](docs/diagrams/) | Diagrams: [system architecture](docs/diagrams/system-architecture.svg), [N-tier architecture](docs/diagrams/n-tier-architecture.svg), [Backup now, file by file](docs/diagrams/backup-now-flow.svg) |
 | [docs/BACKUP_RELIABILITY.md](docs/BACKUP_RELIABILITY.md) | SSH behaviour and the retry queue |
 | [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md) | Which file does what |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Running locally, adding a page, API or vendor, release checklist |

@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="780" viewBox="0 0 1320 780" role="img" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <title>BdREN VAULT - system architecture</title>
+  <desc>Users reach nginx over HTTPS 443; nginx passes requests to the VAULT application (web portal and API, background tasks). The background tasks read device configuration over SSH and ping devices. Network devices send RADIUS requests to FreeRADIUS and syslog to the VAULT syslog receiver. Data lives in MariaDB dbms, MariaDB radius and the saved configuration files.</desc>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="#344054"/></marker>
+    <marker id="ahd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="#B54708"/></marker>
+  </defs>
+  <rect width="1320" height="780" fill="#FFFFFF"/>
+
+  <text x="20" y="42" font-size="22" font-weight="600" fill="#101828">System architecture</text>
+  <text x="20" y="68" font-size="14" fill="#475467">What runs on the VAULT server, who talks to it, and where the data is kept. VAULT only reads device configuration; it never changes a device.</text>
+
+  <!-- server container -->
+  <rect x="290" y="96" width="1010" height="610" rx="14" fill="#F8FAFC" stroke="#98A2B3" stroke-dasharray="7 5"/>
+  <text x="312" y="124" font-size="12" font-weight="600" fill="#475467" letter-spacing="1">VAULT SERVER · UBUNTU / DEBIAN</text>
+
+  <!-- ===== connectors ===== -->
+  <g fill="none" stroke="#344054" stroke-width="1.6">
+    <path d="M222 197H328" marker-end="url(#ah)"/>
+    <path d="M528 197H588" marker-end="url(#ah)"/>
+    <path d="M928 197H1018" marker-end="url(#ah)"/>
+    <path d="M928 297H1018" marker-end="url(#ah)"/>
+    <path d="M768 340V458" marker-end="url(#ah)"/>
+    <path d="M558 503H618" marker-end="url(#ah)"/>
+    <path d="M558 633H1288V218H1262" marker-end="url(#ah)"/>
+  </g>
+  <g fill="none" stroke="#B54708" stroke-width="2.2">
+    <path d="M628 340V402H131V446" marker-end="url(#ahd)"/>
+    <path d="M222 503H328" marker-end="url(#ahd)"/>
+    <path d="M222 633H328" marker-end="url(#ahd)"/>
+  </g>
+
+  <!-- arrow labels -->
+  <text x="275" y="186" font-size="11.5" fill="#344054" text-anchor="middle">HTTPS · 443</text>
+  <text x="380" y="392" font-size="11.5" fill="#B54708" text-anchor="middle">SSH 22 (read only) · ping</text>
+  <text x="275" y="485" font-size="11.5" fill="#B54708" text-anchor="middle">RADIUS</text>
+  <text x="275" y="499" font-size="11" fill="#B54708" text-anchor="middle">UDP 1812/1813</text>
+  <text x="275" y="615" font-size="11.5" fill="#B54708" text-anchor="middle">syslog</text>
+  <text x="275" y="629" font-size="11" fill="#B54708" text-anchor="middle">UDP 514</text>
+  <text x="776" y="420" font-size="11.5" fill="#344054">users, NAS</text>
+  <text x="972" y="186" font-size="11.5" fill="#344054" text-anchor="middle">read / write</text>
+  <text x="972" y="286" font-size="11.5" fill="#344054" text-anchor="middle">new versions</text>
+  <text x="588" y="492" font-size="11.5" fill="#344054" text-anchor="middle">logins</text>
+  <text x="920" y="622" font-size="11.5" fill="#344054" text-anchor="middle">sessions and commands</text>
+
+  <!-- ===== outside ===== -->
+  <rect x="40" y="152" width="182" height="90" rx="10" fill="#FFFFFF" stroke="#475467" stroke-width="1.5"/>
+  <text x="131" y="190" font-size="15" font-weight="600" fill="#101828" text-anchor="middle">Users</text>
+  <text x="131" y="212" font-size="12" fill="#667085" text-anchor="middle">web browser</text>
+
+  <rect x="40" y="448" width="182" height="232" rx="10" fill="#FFFAEB" stroke="#B54708" stroke-width="1.5"/>
+  <text x="131" y="540" font-size="15" font-weight="600" fill="#7A2E0E" text-anchor="middle">Network devices</text>
+  <text x="131" y="562" font-size="12" fill="#B54708" text-anchor="middle">switches, routers,</text>
+  <text x="131" y="580" font-size="12" fill="#B54708" text-anchor="middle">firewalls, OLTs</text>
+
+  <!-- ===== web server ===== -->
+  <rect x="330" y="152" width="198" height="90" rx="10" fill="#FFFFFF" stroke="#0E7090" stroke-width="1.5"/>
+  <text x="429" y="185" font-size="15" font-weight="600" fill="#101828" text-anchor="middle">nginx</text>
+  <text x="429" y="206" font-size="12" fill="#0E7090" text-anchor="middle">HTTPS, TLS certificate</text>
+  <text x="429" y="224" font-size="12" fill="#0E7090" text-anchor="middle">sign-in rate limit</text>
+
+  <!-- ===== VAULT application ===== -->
+  <rect x="590" y="140" width="338" height="200" rx="12" fill="#EEF4FF" stroke="#3538CD" stroke-width="1.5"/>
+  <text x="608" y="164" font-size="12" font-weight="600" fill="#3538CD" letter-spacing="1">VAULT APPLICATION · service vault</text>
+  <rect x="608" y="176" width="302" height="66" rx="8" fill="#FFFFFF" stroke="#3538CD"/>
+  <text x="759" y="202" font-size="14" font-weight="600" fill="#101828" text-anchor="middle">Web portal and JSON API</text>
+  <text x="759" y="224" font-size="12" fill="#475467" text-anchor="middle">Django 5.2 · Waitress · 4 tiers</text>
+  <rect x="608" y="258" width="302" height="66" rx="8" fill="#FFFFFF" stroke="#3538CD"/>
+  <text x="759" y="284" font-size="14" font-weight="600" fill="#101828" text-anchor="middle">Background tasks</text>
+  <text x="759" y="306" font-size="12" fill="#475467" text-anchor="middle">schedule · backup jobs · ping · clean-up</text>
+
+  <!-- ===== access control and logging ===== -->
+  <rect x="330" y="458" width="228" height="90" rx="10" fill="#FFFFFF" stroke="#6941C6" stroke-width="1.5"/>
+  <text x="444" y="491" font-size="15" font-weight="600" fill="#101828" text-anchor="middle">FreeRADIUS 3</text>
+  <text x="444" y="512" font-size="12" fill="#6941C6" text-anchor="middle">service freeradius</text>
+  <text x="444" y="530" font-size="12" fill="#475467" text-anchor="middle">answers every device login</text>
+
+  <rect x="330" y="588" width="228" height="90" rx="10" fill="#FFFFFF" stroke="#6941C6" stroke-width="1.5"/>
+  <text x="444" y="621" font-size="15" font-weight="600" fill="#101828" text-anchor="middle">Syslog receiver</text>
+  <text x="444" y="642" font-size="12" fill="#6941C6" text-anchor="middle">service vault-syslog</text>
+  <text x="444" y="660" font-size="12" fill="#475467" text-anchor="middle">builds the Session Log</text>
+
+  <!-- ===== data ===== -->
+  <rect x="620" y="460" width="300" height="86" rx="10" fill="#ECFDF3" stroke="#067647" stroke-width="1.5"/>
+  <text x="770" y="492" font-size="15" font-weight="600" fill="#054F31" text-anchor="middle">MariaDB · radius</text>
+  <text x="770" y="514" font-size="12" fill="#067647" text-anchor="middle">RADIUS users, levels, NAS clients,</text>
+  <text x="770" y="531" font-size="12" fill="#067647" text-anchor="middle">login records</text>
+
+  <rect x="1020" y="152" width="242" height="90" rx="10" fill="#ECFDF3" stroke="#067647" stroke-width="1.5"/>
+  <text x="1141" y="184" font-size="15" font-weight="600" fill="#054F31" text-anchor="middle">MariaDB · dbms</text>
+  <text x="1141" y="205" font-size="12" fill="#067647" text-anchor="middle">devices, jobs, logs, users,</text>
+  <text x="1141" y="222" font-size="12" fill="#067647" text-anchor="middle">settings, audit, Session Log</text>
+
+  <rect x="1020" y="262" width="242" height="90" rx="10" fill="#ECFDF3" stroke="#067647" stroke-width="1.5"/>
+  <text x="1141" y="294" font-size="15" font-weight="600" fill="#054F31" text-anchor="middle">Saved configurations</text>
+  <text x="1141" y="315" font-size="12" fill="#067647" text-anchor="middle">data/backups/</text>
+  <text x="1141" y="332" font-size="12" fill="#067647" text-anchor="middle">every version, SHA-256</text>
+
+  <!-- legend -->
+  <g font-size="12" fill="#475467">
+    <line x1="20" y1="740" x2="56" y2="740" stroke="#344054" stroke-width="1.6" marker-end="url(#ah)"/>
+    <text x="66" y="744">inside the server</text>
+    <line x1="190" y1="740" x2="226" y2="740" stroke="#B54708" stroke-width="2.2" marker-end="url(#ahd)"/>
+    <text x="236" y="744">network traffic to or from devices</text>
+    <rect x="460" y="731" width="14" height="14" rx="3" fill="#ECFDF3" stroke="#067647"/>
+    <text x="482" y="744">data</text>
+    <rect x="530" y="731" width="14" height="14" rx="3" fill="#FFFFFF" stroke="#6941C6"/>
+    <text x="552" y="744">access control and logging</text>
+    <rect x="740" y="731" width="14" height="14" rx="3" fill="#EEF4FF" stroke="#3538CD"/>
+    <text x="762" y="744">VAULT application</text>
+    <text x="20" y="768" fill="#667085">FreeRADIUS never talks to the application: both use the radius database, so a change saved in the portal is used on the next device login, without a restart.</text>
+  </g>
+</svg>
