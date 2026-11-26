@@ -9,7 +9,7 @@ import secrets
 import sys
 from pathlib import Path
 
-from apps.core.keys import load_or_create_key
+from persistence.core.keys import load_or_create_key
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -94,14 +94,14 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # project apps (one folder per responsibility, see README)
-    "apps.core",
-    "apps.accounts",
-    "apps.devices",
-    "apps.backups",
-    "apps.scheduling",
-    "apps.monitoring",
-    "apps.radius",          # RADIUS Admin: FreeRADIUS users, devices (NAS) and audit
-    "apps.commandlog",      # Command History: who ran which command on a device (device syslog)
+    "application",          # tier 2: management commands (manage.py serve, syslog_receive ...)
+    "persistence.accounts",
+    "persistence.devices",
+    "persistence.backups",
+    "persistence.scheduling",
+    "persistence.monitoring",
+    "persistence.radius",          # RADIUS Admin: FreeRADIUS users, devices (NAS) and audit
+    "persistence.commandlog",      # Command History: who ran which command on a device (device syslog)
 ]
 
 MIDDLEWARE = [
@@ -116,12 +116,12 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "apps.core.middleware.SecurityHeadersMiddleware",
+    "presentation.core.middleware.SecurityHeadersMiddleware",
 ]
 
 TEMPLATES = [{
     "BACKEND": "django.template.backends.django.DjangoTemplates",
-    "DIRS": [BASE_DIR / "templates"],
+    "DIRS": [BASE_DIR / "presentation" / "templates"],
     "APP_DIRS": True,
     "OPTIONS": {"context_processors": [
         "django.template.context_processors.request",
@@ -156,7 +156,7 @@ if not DATABASES["default"]["PASSWORD"]:
     sys.exit("DBMS_DB_PASSWORD is not set. Add it to the .env file.")
 
 # ---------- RADIUS Admin: second database, shared with FreeRADIUS ----------
-# The rad* and nas tables come from the FreeRADIUS schema.sql; apps/radius/router.py sends the
+# The rad* and nas tables come from the FreeRADIUS schema.sql; persistence/radius/router.py sends the
 # RADIUS pages to this database and keeps every other table in "default".
 DATABASES["radius"] = {
     "ENGINE": "django.db.backends.mysql",
@@ -168,7 +168,7 @@ DATABASES["radius"] = {
     "CONN_MAX_AGE": 60,
     "OPTIONS": {"charset": "utf8mb4"},
 }
-DATABASE_ROUTERS = ["apps.radius.router.RadiusRouter"]
+DATABASE_ROUTERS = ["persistence.radius.router.RadiusRouter"]
 # FreeRADIUS reads the nas table only at start, so it is restarted after a device is added or removed.
 RADIUS_RELOAD_CMD = os.environ.get("RADIUS_RELOAD_CMD", "sudo -n /usr/bin/systemctl restart freeradius")
 # 1 = FreeRADIUS looks new switches up in the nas table on their first request (deploy/radius/
@@ -177,7 +177,7 @@ RADIUS_DYNAMIC_CLIENTS = env_flag("RADIUS_DYNAMIC_CLIENTS")
 # Keeps UDP 1812/1813 open in ufw only for the devices on NAS Clients, run after a device is added or
 # removed. Set by deploy/radius/enable_firewall_sync.sh (sudo -n /usr/local/sbin/vault-radius-firewall); empty = off
 RADIUS_FIREWALL_CMD = os.environ.get("RADIUS_FIREWALL_CMD", "").strip()
-# RADIUS user passwords are always stored as salted SHA-256 (apps/radius/services.py hash_password); the old
+# RADIUS user passwords are always stored as salted SHA-256 (application/radius/services.py hash_password); the old
 # RADIUS_PASSWORD_MODE setting is no longer read.
 
 # ---------- users and sessions ----------
@@ -201,7 +201,7 @@ SESSION_COOKIE_NAME = "dbms_session"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_HTTPONLY = False                  # the page's JavaScript reads it and sends X-CSRFToken
-CSRF_FAILURE_VIEW = "apps.core.views.csrf_failure"
+CSRF_FAILURE_VIEW = "presentation.core.views.csrf_failure"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 
 # ---------- HTTPS / reverse proxy ----------
@@ -227,12 +227,12 @@ USE_TZ = True
 
 # ---------- static files ----------
 STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [BASE_DIR / "presentation" / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_ROOT.mkdir(exist_ok=True)
 WHITENOISE_USE_FINDERS = True                 # serve straight from static/ - collectstatic is optional
 WHITENOISE_AUTOREFRESH = DEBUG
-# Every CSS / JS address carries ?v=<number> (templates/base.html) that changes with each release, so a
+# Every CSS / JS address carries ?v=<number> (presentation/templates/base.html) that changes with each release, so a
 # browser may keep a file for a year. The default (60 s) made every page change ask about all 17 files again.
 WHITENOISE_MAX_AGE = 0 if DEBUG else 365 * 24 * 60 * 60
 STORAGES = {
@@ -273,7 +273,7 @@ SETUP_FROM_ANYWHERE = env_flag("DBMS_SETUP_FROM_ANYWHERE")
 # 1 (default) = an administrator may reveal a saved DEVICE password in the device form. 0 = never sent to a browser.
 REVEAL_SAVED_PASSWORDS = env_flag("DBMS_REVEAL_PASSWORDS", True)
 # Optional allow-list of management networks (comma-separated, e.g. 10.0.0.0/8,103.28.121.0/24).
-# When set, SSH and ping go only to addresses inside it. Unset = any ordinary address (see apps/core/netguard.py).
+# When set, SSH and ping go only to addresses inside it. Unset = any ordinary address (see application/core/netguard.py).
 ALLOWED_DEVICE_NETWORKS = env_list("DBMS_ALLOWED_NETWORKS")
 # Recheck offline scheduled devices every 60 seconds by default (minimum 60 seconds).
 RECONNECT_RETRY_SECONDS = max(60, min(env_int("DBMS_RECONNECT_RETRY_SECONDS", 60), 86400))

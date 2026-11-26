@@ -17,7 +17,7 @@ succeeded when started again a little later. Causes:
 
 ## The design
 
-### 1. Patient SSH session (apps/backups/engine.py)
+### 1. Patient SSH session (application/backups/engine.py)
 - **Activity timer instead of a stopwatch.** While the device keeps sending data, VAULT keeps waiting.
   It gives up only when the device has been **silent** for `DBMS_COMMAND_IDLE_SECONDS` (default 180 s).
 - **Safety ceiling** per device: `DBMS_COMMAND_TIMEOUT` (default 3600 s = 1 hour; was 300 s).
@@ -36,14 +36,14 @@ succeeded when started again a little later. Causes:
 | `auth` | login rejected | second pass only once more (an overloaded AAA can reject); then retry queue **once** — never more, so no account lock-out |
 | `permanent` | host key changed, command rejected, no privilege, wrong address, old SSH algorithms | no automatic retry: needs a person; shown in Backup Jobs |
 
-### 3. Second pass inside the same job (apps/backups/jobs.py)
+### 3. Second pass inside the same job (application/backups/jobs.py)
 After the run, devices whose failure was `transient` or `auth` are tried **again in the same job**:
 after a cool-down of `DBMS_RETRY_COOLDOWN` seconds (default 60), with at most `DBMS_RETRY_PASS_WORKERS`
 (default 3) parallel sessions and 3 s between logins. A device that succeeds replaces its failed row
 ("succeeded on the automatic second try"). The job chip shows "Retrying N devices". Stop backup works
 during the cool-down and the second pass. `DBMS_RETRY_PASS=0` turns the pass off.
 
-### 4. Background retry queue (apps/scheduling/services.py)
+### 4. Background retry queue (application/scheduling/services.py)
 Every job, manual or automatic, ends by updating the queue (`pending_backup_device_ids` + `retry_info`):
 - success → leaves the queue; permanent failure → leaves the queue (a person must act);
 - `offline` → waits; pinged every `DBMS_RECONNECT_RETRY_SECONDS` (60 s); backed up when it answers;

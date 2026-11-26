@@ -524,18 +524,19 @@ nightly with cron. Without `secret.key`, saved device passwords cannot be recove
 
 ```
 BdREN-VAULT/
-├── apps/                 Django apps, one per area
-│   ├── accounts/         portal users, sign-in, lockout, roles
-│   ├── devices/          device inventory, vendors, credentials
-│   ├── backups/          SSH backup engine, versions, reports, retention
-│   ├── scheduling/       backup schedule and settings
-│   ├── monitoring/       ICMP reachability monitor
-│   ├── radius/           RADIUS / AAA users, NAS clients, audit
-│   ├── commandlog/       Session Log: syslog receiver, vendor parsers, history page
-│   └── core/             pages, API helpers, background tasks, architecture check
+├── presentation/         TIER 1: what the user sees
+│   ├── <area>/           views.py + urls.py of each area (JSON API, pages)
+│   ├── core/             page registry, api() role check, security headers
+│   ├── templates/        HTML pages and shared components
+│   └── static/           css/, js/core/, js/pages/, img/
+├── application/          TIER 2: rules and work
+│   ├── <area>/           services.py, selectors.py, SSH engine, jobs, syslog parsers
+│   ├── core/             background tasks, errors, alerts, architecture check
+│   └── management/       manage.py commands (serve, syslog_receive, ...)
+├── persistence/          TIER 3: data
+│   ├── <area>/           models.py, migrations/, Django app config
+│   └── core/             encryption of device passwords
 ├── config/               Django settings and URLs
-├── templates/            HTML pages and shared components
-├── static/               css/, js/core/, js/pages/, img/
 ├── deploy/               install.sh, update and health scripts
 │   ├── systemd/          vault.service, vault-syslog.service
 │   ├── nginx/            HTTPS site
@@ -545,15 +546,15 @@ BdREN-VAULT/
 └── manage.py
 ```
 
-Inside every app the files follow the three tiers:
+One feature is found in the same place in each tier, for example Devices:
 
-| Tier | Files |
-|---|---|
-| Presentation | `views.py`, `urls.py`, `templates/`, `static/` |
-| Application | `services.py` (changes), `selectors.py` (reads), integrations such as `engine.py`, `parsers.py` |
-| Data | `models.py`, `migrations/`, MariaDB `dbms` and `radius` |
+| Tier | Folder | Files |
+|---|---|---|
+| 1. Presentation | `presentation/devices/` | `views.py`, `urls.py` (+ `presentation/templates/devices/`, `presentation/static/js/pages/devices.js`) |
+| 2. Application | `application/devices/` | `services.py` (changes), `selectors.py` (reads), `vendors.py` |
+| 3. Persistence | `persistence/devices/` | `models.py`, `migrations/`, `apps.py` |
 
-`python manage.py check_architecture` enforces the order. A file-by-file guide is in [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md).
+A tier only calls the tier below it; `python manage.py check_architecture` enforces this. A file-by-file guide is in [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md).
 
 ---
 

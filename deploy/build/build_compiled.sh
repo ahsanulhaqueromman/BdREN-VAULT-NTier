@@ -2,10 +2,10 @@
 # =====================================================================================================
 #  Build a SOURCE-HIDDEN distribution of VAULT (for giving the app to others to RUN without the code).
 #
-#  Every .py under apps/ and config/ (except __init__.py and migrations/) is compiled to a native
+#  Every .py under presentation/, application/, persistence/ and config/ (except __init__.py and migrations/) is compiled to a native
 #  .so with Cython, then the .py sources are removed from the OUTPUT copy. What stays, because Django
 #  needs it or it is visible anyway:
-#      - templates/ (HTML), static/ (CSS, JS)     <- always readable in the browser
+#      - presentation/templates/ (HTML), static/ (CSS, JS)     <- always readable in the browser
 #      - */migrations/                            <- Django imports these as modules
 #      - manage.py, __init__.py, .env.example
 #
@@ -54,7 +54,7 @@ import glob
 from setuptools import setup
 from Cython.Build import cythonize
 
-files = [f for f in glob.glob("apps/**/*.py", recursive=True) + glob.glob("config/**/*.py", recursive=True)
+files = [f for f in glob.glob("presentation/**/*.py", recursive=True) + glob.glob("application/**/*.py", recursive=True) + glob.glob("persistence/**/*.py", recursive=True) + glob.glob("config/**/*.py", recursive=True)
          if not f.endswith("__init__.py") and "/migrations/" not in f]
 if not files:
     raise SystemExit("No .py files found to compile - is this the project root?")
@@ -74,7 +74,7 @@ find . -type d -name '__pycache__' -prune -exec rm -rf {} + 2>/dev/null || true
 
 echo
 echo "Done. Source-hidden build is in: $OUT"
-echo "  - the Python logic is now .so binaries under apps/ and config/ (no readable .py)"
+echo "  - the Python logic is now .so binaries under the three tier folders and config/ (no readable .py)"
 echo "  - templates, static files, migrations and manage.py are kept (unavoidable)"
 echo
 echo "TEST it before shipping:"

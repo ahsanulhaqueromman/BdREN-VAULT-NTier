@@ -21,35 +21,33 @@ How the VAULT is put together. For "which file does what", see
 ```
 
 - **Django app** (one process): web pages, JSON API, the SSH backup engine, the scheduler and the ping monitor
-  (background threads started by `apps/core/background.py`).
+  (background threads started by `application/core/background.py`).
 - **Syslog receiver** (its own process): turns the devices' syslog into Session Log logins, commands and
   changes. It accepts only NAS Clients addresses, at most 200 messages a second per device.
 - **FreeRADIUS** never talks to the app. Both use the `radius` database, so a user, level, device limit or new
   switch saved in the panel is used on the next login, with no restart.
 
-## Layered architecture (server)
+## N-tier architecture (server)
 
-Every app in `apps/` is built in the same layers, following the widely used Django "service layer" style.
-A module may only depend on the layers **below** it:
+The code is split into three tiers, one top-level folder each. A tier may only use the tier **below** it:
 
 ```
- HTTP         views.py, urls.py         read the request → call a selector or service → answer (JSON / page)
-     │                                  + record the audit entry (it needs the request: user and IP)
+ presentation/   TIER 1   views.py, urls.py, api(), middleware, pages, templates/, static/
+     │                    read the request → call a selector or service → answer (JSON / page)
+     │                    + record the audit entry (it needs the request: user and IP)
      ▼
- business     services.py               rules and every change: validation, writes, transactions
-     │
+ application/    TIER 2   services.py    rules and every change: validation, writes, transactions
+     │                    selectors.py   every database read; never changes anything
+     │                    integrations   engine.py (SSH)  storage.py (files)  jobs.py  reports.py
+     │                                   parsers.py + receiver.py (syslog)  monitoring ping (OS `ping`)
      ▼
- read         selectors.py              every database read; never changes anything
-     │
-     ▼
- integration  engine.py (SSH)  storage.py (files)  jobs.py (background jobs)  reports.py
-              monitoring ping (OS `ping`)  radius router.py (FreeRADIUS database)
-     │
-     ▼
- data         models.py                 tables only
+ persistence/    TIER 3   models.py, migrations/, radius router.py (FreeRADIUS database), crypto.py
 ```
 
-| App | HTTP | Business | Read | Integration |
+Inside each tier every area has its own folder, so one feature is found in the same place three times:
+`presentation/devices/views.py` → `application/devices/services.py` → `persistence/devices/models.py`.
+
+| Area | Presentation (HTTP) | Application: services | Application: selectors | Application: integrations |
 |---|---|---|---|---|
 | `accounts` | sign-in pages, `/api/me`, `/api/users` | password rules, lockout, user changes | users, sign-in history | |
 | `devices` | `/api/devices`, `/api/credentials` | validation, add / edit / delete, saved logins | inventory, saved login profiles | |
@@ -58,13 +56,13 @@ A module may only depend on the layers **below** it:
 | `scheduling` | `/api/settings` | settings, the backup timer | | |
 | `radius` | `/api/radius/*` | RADIUS users, levels, NAS, FreeRADIUS restart, password hashing, NAS names from syslog | users, NAS, logins, limit violations | `router.py` (second database) |
 | `commandlog` | `/api/radius/commands*` | save what the receiver hands over, dismiss a warning, clean-up | sessions, devices sending logs, receiver state, From for Authentication Audit | `receiver.py` (UDP 514), `parsers.py` (vendor formats) |
-| `core` | pages, `/healthz` | | | shared kernel: `api.py`, `crypto.py`, `netguard.py`, `background.py`, `pages.py` |
+| `core` | pages, `/healthz`, `api.py`, `middleware.py` | | | `errors.py`, `netguard.py`, `background.py`; persistence: `crypto.py`, `keys.py` |
 
-**Between apps** only the public modules are used: another app's `selectors`, `services` (and `audit`,
+**Between areas** only the public modules are used: another area's `selectors`, `services` (and `audit`,
 `vendors`, `jobs`, `engine`). Example: the Dashboard reads backup numbers with
-`apps.backups.selectors.results_per_day()`, never `BackupLog.objects`. `apps/core` is the shared kernel every
-app may use; `core/background.py` is the composition root that starts the periodic services.
-Maintenance commands (`management/commands/`) may use any app's models directly, like migrations.
+`application.backups.selectors.results_per_day()`, never `BackupLog.objects`. `core` is the shared kernel every
+area may use; `core/background.py` is the composition root that starts the periodic services.
+Maintenance commands (`application/management/commands/`) may use any area's models directly, like migrations.
 
 **The rules are checked by a command**, so they cannot drift:
 
@@ -72,11 +70,11 @@ Maintenance commands (`management/commands/`) may use any app's models directly,
 python manage.py check_architecture        # "Architecture OK" or the file, line and rule broken
 ```
 
-The rules themselves are in `apps/core/architecture.py`; the test suite runs the same check.
+The rules themselves are in `application/core/architecture.py`; the test suite runs the same check.
 
 ## Pages: one URL per screen
 
-Every screen is its own page. The list lives in one place, **`apps/core/pages.py`**:
+Every screen is its own page. The list lives in one place, **`presentation/core/pages.py`**:
 
 | Key | URL | Template | Role |
 |---|---|---|---|
@@ -96,14 +94,14 @@ Every screen is its own page. The list lives in one place, **`apps/core/pages.py
 | `settings` | `/settings` | `settings/index.html` | Administrator |
 
 The registry drives the URL table (`config/urls.py`), the side menu, the breadcrumb, the browser-tab title and
-access. A role below the page's role gets `templates/errors/forbidden.html` (HTTP 403). `/` opens the Dashboard;
+access. A role below the page's role gets `presentation/templates/errors/forbidden.html` (HTTP 403). `/` opens the Dashboard;
 after signing in the user returns to the page they asked for (`/login?next=/devices`).
 
 ### Request flow of a page
 
-1. `apps/core/views.py: page_view()` looks the key up in the registry and renders the page's template.
+1. `presentation/core/views.py: page_view()` looks the key up in the registry and renders the page's template.
 2. Every page template does `{% extends "base.html" %}` and fills `{% block content %}`.
-3. `templates/base.html` draws the side menu (for this role), top bar, shared pop-ups, and sets
+3. `presentation/templates/base.html` draws the side menu (for this role), top bar, shared pop-ups, and sets
    `<body data-page="devices" class="r-admin">`.
 4. The browser loads the scripts (below); `core/start.js` calls the page's loader, which fetches its data
    from the JSON API and draws it.
@@ -114,7 +112,7 @@ All scripts load on every page, in a fixed order, and share one global scope: on
 and a function from an earlier file can be used directly.
 
 ```
-static/js/core/    shared by every page
+presentation/static/js/core/    shared by every page
   early.js          side-menu state before the page is drawn
   helpers.js        $, $o, esc, toast, api(), dates, confirm pop-up, pager, PAGE / showTab / openDevice
   menu.js           menu button (minimise on a computer, drawer on a phone), RADIUS drop-down, account menu
@@ -123,8 +121,8 @@ static/js/core/    shared by every page
   search.js         global search (Ctrl+K)
   start.js          PAGE_INIT: runs the open page's loader; idle sign-out
   responsive.js     tables become cards on phones
-static/js/pages/   one file per screen (dashboard, devices, backups, reports, jobs, logs, users, settings, radius)
-static/js/pages/auth.js   sign-in page only
+presentation/static/js/pages/   one file per screen (dashboard, devices, backups, reports, jobs, logs, users, settings, radius)
+presentation/static/js/pages/auth.js   sign-in page only
 ```
 
 Rules that keep this safe:
@@ -136,15 +134,15 @@ Rules that keep this safe:
 - **Navigation is plain links.** `showTab("devices")` and `openDevice(id)` change `location`; links saved from the
   old one-page version (`/#devices`, `/#device/12`) are redirected by `start.js`.
 
-Styles: `static/css/app.css` for the application (sections: tokens, base, shell, components, pages, motion,
-responsive) and `static/css/auth.css` for the sign-in page.
+Styles: `presentation/static/css/app.css` for the application (sections: tokens, base, shell, components, pages, motion,
+responsive) and `presentation/static/css/auth.css` for the sign-in page.
 
 ## Backups
 
-`apps/backups/jobs.py` runs one job at a time: ping every device in parallel, then up to N SSH sessions
-(Settings → Performance). For each device `apps/backups/services.py`:
+`application/backups/jobs.py` runs one job at a time: ping every device in parallel, then up to N SSH sessions
+(Settings → Performance). For each device `application/backups/services.py`:
 
-1. reads the configuration over SSH (`engine.py`, vendor command from `apps/devices/vendors.py`)
+1. reads the configuration over SSH (`engine.py`, vendor command from `application/devices/vendors.py`)
 2. compares it with the latest saved version, ignoring lines that change on every read (clock, timestamps)
 3. unchanged → records the check only; changed → writes a hidden `.part` file, then renames it **inside the same
    database transaction** that records the result (`storage.py`), then writes a SHA-256 checksum
@@ -201,10 +199,10 @@ panel. `deploy/radius/check_levels.sh` verifies the whole chain on a server.
 
 ## Security
 
-- Every JSON endpoint goes through `apps/core/api.py` (`@api(GET="viewer", POST="operator", ...)`): method and
+- Every JSON endpoint goes through `presentation/core/api.py` (`@api(GET="viewer", POST="operator", ...)`): method and
   role are checked on the server, never only in the browser.
 - Device passwords are encrypted with Fernet (`data/secret.key`); they reach the browser only when an
   administrator presses Show, which is audited.
 - Strict Content-Security-Policy (no inline or eval scripts), HSTS on HTTPS, no search-engine indexing,
-  generic error messages (`apps/core/middleware.py`).
+  generic error messages (`presentation/core/middleware.py`).
 - Sign-in lockout after 5 wrong passwords, idle sign-out, sign-in history with the real client IP.
