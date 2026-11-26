@@ -2,10 +2,18 @@
 
 Which file does what. Read [ARCHITECTURE.md](ARCHITECTURE.md) first for the big picture and the tier rules.
 
-Every business area is one app in `apps/`, and every app has the same folders:
-`api/` (HTTP), `services/` (rules and changes), `selectors/` (reads), `models/` (tables), `migrations/`,
-plus `tasks/`, `integrations/` or `repositories/` where the app needs them. Shared code is in `core/`.
-How to read an app: [apps/README.md](../apps/README.md).
+Every business area is one app in `apps/`, and every app has one file per layer:
+
+| Layer | File | Main job |
+|---|---|---|
+| Presentation | `views.py` (+ `urls.py`) | Receive the client's request and send the response |
+| Presentation | `serializers.py` | Turn objects into JSON (passwords never leave the server) |
+| Business logic | `services.py` | The rules and every change (add a device, start a backup, lock a user ...) |
+| Data access | `repositories.py` | Stores that are not ordinary tables: backup files on disk, the FreeRADIUS database |
+| Data access | `selectors.py` | Every database read and filter; never changes anything |
+| Database | `models.py` | The tables and their fields |
+
+Shared code is in `core/`. How to read an app: [apps/README.md](../apps/README.md).
 
 ## Where to start
 
@@ -17,23 +25,23 @@ How to read an app: [apps/README.md](../apps/README.md).
 | What a page does (buttons, tables) | `static/js/pages/<page>.js` |
 | Notifications, API calls, dates, pager | `static/js/core/helpers.js` |
 | Colours, spacing, the look | `static/css/app.css` (tokens at the top); sign-in page: `static/css/auth.css` |
-| Sign-in page | `templates/accounts/auth.html`, `apps/accounts/api/views.py`, `static/js/pages/auth.js` |
+| Sign-in page | `templates/accounts/auth.html`, `apps/accounts/views.py`, `static/js/pages/auth.js` |
 | Supported device types (Cisco, Huawei, Fortinet ...) | `apps/devices/vendors.py` |
-| A list or number shown on a page (database read) | `apps/<app>/selectors/<app>_selectors.py` |
-| A rule or a change (add, edit, delete, start) | `apps/<app>/services/<app>_service.py` |
-| A table or a column | `apps/<app>/models/`, then `python manage.py makemigrations` |
+| A list or number shown on a page (database read) | `apps/<app>/selectors.py` |
+| A rule or a change (add, edit, delete, start) | `apps/<app>/services.py` |
+| A table or a column | `apps/<app>/models.py`, then `python manage.py makemigrations` |
 | The tier rules and their check | `core/architecture.py`, `python manage.py check_architecture` |
-| How a backup is taken from a device (SSH) | `apps/backups/integrations/ssh_engine.py` |
-| When a backup is saved or skipped | `apps/backups/services/backup_service.py` |
-| Where backup files are stored on disk | `apps/backups/repositories/backup_storage.py` |
-| Background backup jobs (parallel, progress) | `apps/backups/tasks/backup_jobs.py` |
-| Ping and the background ping monitor | `apps/monitoring/services/monitoring_service.py` |
-| Dashboard numbers (Needs attention, recent changes, logins, health) | `apps/monitoring/selectors/monitoring_selectors.py`, `static/js/pages/dashboard.js` |
-| Settings page, automatic backup timer | `apps/scheduling/services/schedule_service.py` |
-| Web users, roles, sign-in lockout | `apps/accounts/services/account_service.py`, `apps/accounts/models/account.py` |
-| RADIUS users, levels, NAS, audit | `apps/radius/services/radius_service.py`, `apps/radius/api/views.py` |
+| How a backup is taken from a device (SSH) | `apps/backups/engine.py` |
+| When a backup is saved or skipped | `apps/backups/services.py` |
+| Where backup files are stored on disk | `apps/backups/repositories.py` |
+| Background backup jobs (parallel, progress) | `apps/backups/jobs.py` |
+| Ping and the background ping monitor | `apps/monitoring/services.py` |
+| Dashboard numbers (Needs attention, recent changes, logins, health) | `apps/monitoring/selectors.py`, `static/js/pages/dashboard.js` |
+| Settings page, automatic backup timer | `apps/scheduling/services.py` |
+| Web users, roles, sign-in lockout | `apps/accounts/services.py`, `apps/accounts/models.py` |
+| RADIUS users, levels, NAS, audit | `apps/radius/services.py`, `apps/radius/views.py` |
 | FreeRADIUS policies and setup scripts | `deploy/radius/` |
-| Session Log: syslog receiver, vendor message formats | `apps/commandlog/tasks/syslog_receiver.py`, `apps/commandlog/integrations/syslog_parsers.py` |
+| Session Log: syslog receiver, vendor message formats | `apps/commandlog/receiver.py`, `apps/commandlog/parsers.py` |
 | Server settings (environment) | `config/settings/base.py` and `.env` |
 
 ## Project layout
@@ -61,23 +69,26 @@ core/                    Shared kernel, used by every app
   management/commands/   serve, syslog_receive, check_architecture, verify_backups, system_health,
                          backup_retention, radius_init, radius_hash_passwords, ...
 
-apps/                    One app per business area; every app: api/ services/ selectors/ models/ migrations/
+apps/                    One app per business area; every app: views.py urls.py serializers.py services.py
+                         selectors.py models.py migrations/ (serializers.py / repositories.py where needed)
   accounts/              Sign-in, first-run setup, web users and roles
   devices/               Device inventory
+    serializers.py       Device -> JSON (passwords replaced by yes/no flags)
     vendors.py           Vendor table: login driver, backup command, name parser
   backups/               Configuration backups
-    services/            backup_service.py, report_service.py (change report), audit_service.py (audit trail)
-    tasks/               backup_jobs.py: parallel backup jobs in a background thread
-    integrations/        ssh_engine.py: SSH login to ONE device and read its configuration
-    repositories/        backup_storage.py: files in data/backups/<device>/<YYYY>/<Mon>/<DD>/ (all-or-nothing)
+    repositories.py      Backup files in data/backups/<device>/<YYYY>/<Mon>/<DD>/ (all-or-nothing saves)
+    jobs.py              Parallel backup jobs in a background thread
+    engine.py            SSH login to ONE device and read its configuration
+    reports.py           Change report (diff of versions per month range)
+    audit.py             The audit trail: record_audit() and its reads
   monitoring/            Ping and the Dashboard numbers
     cache_keys.py        Ping cache keys
-  scheduling/            Settings and the automatic backup timer (no selectors/: settings are read by the service)
+  scheduling/            Settings and the automatic backup timer (no selectors.py: settings are read by the service)
   radius/                RADIUS / AAA (FreeRADIUS database)
-    repositories/        db_router.py: sends these tables to the second database (`radius`)
+    repositories.py      Sends these tables to the second database (`radius`)
   commandlog/            Session Log (who ran which command on a device)
-    tasks/               syslog_receiver.py: UDP syslog receiver (manage.py syslog_receive, service vault-syslog)
-    integrations/        syslog_parsers.py: one syslog line -> user action (Huawei, Cisco, Juniper, MikroTik, Fortinet)
+    receiver.py          UDP syslog receiver (manage.py syslog_receive, service vault-syslog)
+    parsers.py           One syslog line -> user action (Huawei, Cisco, Juniper, MikroTik, Fortinet)
 
 templates/
   base.html              Frame of every page: side menu, top bar, shared pop-ups, scripts
@@ -92,14 +103,11 @@ static/
   js/pages/              One file per page
   img/vendors/           Vendor logos
 
-deploy/                  Server scripts (the ones you run are at the top level)
+deploy/                  Server scripts (table with every script: deploy/README.md)
   install.sh             One command: install a new server or update an existing one
   uninstall.sh           Remove VAULT from a server
-  backup_vault.sh        Back up the databases, keys and settings before an update
-  after_os_update.sh     Read-only health check after an Ubuntu / Debian upgrade
-  harden.sh              Firewall, login rate limit, automatic security updates (install.sh runs it)
-  set-domain.sh          Add a domain name with a Let's Encrypt certificate
-  enable_syslog.sh       Install / repair the syslog receiver (install.sh runs it)
+  maintenance/           backup_vault.sh (back up before an update), after_os_update.sh (read-only check),
+                         harden.sh (firewall, rate limit), set-domain.sh (Let's Encrypt), enable_syslog.sh
   systemd/               vault.service (web app), vault-syslog.service (Session Log receiver)
   nginx/                 nginx-dbms.conf: the HTTPS site in front of the app
   radius/                FreeRADIUS policies, enable_*.sh helpers, check_levels.sh (RADIUS health check)
@@ -108,16 +116,18 @@ deploy/                  Server scripts (the ones you run are at the top level)
 docs/                    ARCHITECTURE, FILE_GUIDE (this file), CONTRIBUTING, DEPLOY, TROUBLESHOOTING
 ```
 
-## The tiers inside every app
+## The layers inside every app
 
-| Tier | Folder | Job |
+| Layer | File | Main job |
 |---|---|---|
-| 1. Presentation | `apps/<app>/api/`, `core/pages.py`, `templates/`, `static/`, `deploy/nginx/` | Screens, JSON answers, HTTPS |
-| 2. Business | `apps/<app>/services/`, `tasks/`, `core/background.py` | Rules, changes, background work |
-| 3. Data access | `apps/<app>/selectors/`, `repositories/`, `integrations/` | Reads, files, SSH, syslog |
-| 4. Entities | `apps/<app>/models/`, `migrations/` | Tables in MariaDB `dbms` and `radius` |
+| Presentation | `views.py` (+ `urls.py`) | Receive the client's request and send the response |
+| Presentation | `serializers.py` | Turn objects into JSON (passwords never leave the server) |
+| Business logic | `services.py` | The rules and every change (add a device, start a backup, lock a user ...) |
+| Data access | `repositories.py` | Stores that are not ordinary tables: backup files on disk, the FreeRADIUS database |
+| Data access | `selectors.py` | Every database read and filter; never changes anything |
+| Database | `models.py` | The tables and their fields |
 
-`python manage.py check_architecture` makes sure a tier only calls the tiers below it.
+`python manage.py check_architecture` makes sure a layer only calls the layers below it.
 
 ## Scripts and their order
 

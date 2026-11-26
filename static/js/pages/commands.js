@@ -83,7 +83,7 @@ function renderCmdStatus(){
   const r=cmdData.receiver||{},box=$("#cmdStatus");
   const notes=[],setup=`<a href="${esc(PAGE_URL["radius-setup"]||"/radius/setup")}">Device Setup</a>`;
   if(!r.seen)notes.push(cmdNote("The syslog receiver is not installed yet.","It listens for the devices' logs on UDP 514.",[
-    `Run this once on the server:<code>sudo bash /opt/vault/deploy/enable_syslog.sh</code>`,
+    `Run this once on the server:<code>sudo bash /opt/vault/deploy/maintenance/enable_syslog.sh</code>`,
     `Turn on command logging on each device: ${setup}, step "Command logging".`]));
   else if(!r.running)notes.push(cmdNote("The syslog receiver is not running",
     `${r.heartbeat?`(last seen ${esc(fmtWhen(r.heartbeat).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim())}). `:""}Logs that arrive now are lost.`,[

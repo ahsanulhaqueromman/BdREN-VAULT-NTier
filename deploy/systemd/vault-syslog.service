@@ -1,5 +1,5 @@
 # systemd unit for the Command History syslog receiver (manage.py syslog_receive).
-# Installed by deploy/enable_syslog.sh (also run by install.sh); User, WorkingDirectory and ExecStart are
+# Installed by deploy/maintenance/enable_syslog.sh (also run by install.sh); User, WorkingDirectory and ExecStart are
 # filled in there. It runs as the app's own user: CAP_NET_BIND_SERVICE lets it use UDP 514 without root.
 [Unit]
 Description=VAULT syslog receiver (Command History)

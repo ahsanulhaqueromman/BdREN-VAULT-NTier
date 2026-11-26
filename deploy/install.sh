@@ -474,8 +474,8 @@ fi
 
 # ---- 8c. hardening: login rate limit, fail2ban, automatic security updates -----------
 step "Hardening"
-if ! APP_DIR="$APP_DIR" ENV_FILE="$APP_DIR/.env" bash "$APP_DIR/deploy/harden.sh" 2>&1 | sed 's/^/  /'; then
-  warn "hardening finished with warnings (above); fix them, then run: sudo bash $APP_DIR/deploy/harden.sh"
+if ! APP_DIR="$APP_DIR" ENV_FILE="$APP_DIR/.env" bash "$APP_DIR/deploy/maintenance/harden.sh" 2>&1 | sed 's/^/  /'; then
+  warn "hardening finished with warnings (above); fix them, then run: sudo bash $APP_DIR/deploy/maintenance/harden.sh"
 fi
 
 # ---- 9. start and check ------------------------------------------------------------------------------
@@ -486,19 +486,19 @@ if curl -fsS "http://127.0.0.1:$PORT/healthz" >/dev/null 2>&1; then ok "the webs
 else rollback; die "The new version did not start (see: journalctl -u vault -n 50). The previous version was restored."; fi
 
 # ---- 9b. Session Log: syslog receiver (who ran which command on the devices) ----------------------------
-if APP_DIR="$APP_DIR" ENV_FILE="$APP_DIR/.env" SVC_USER="$SVC_USER" bash "$APP_DIR/deploy/enable_syslog.sh" >/tmp/vault-syslog.$$ 2>&1; then
+if APP_DIR="$APP_DIR" ENV_FILE="$APP_DIR/.env" SVC_USER="$SVC_USER" bash "$APP_DIR/deploy/maintenance/enable_syslog.sh" >/tmp/vault-syslog.$$ 2>&1; then
   ok "Session Log: syslog receiver running ($(grep -oE 'UDP [0-9]+' /tmp/vault-syslog.$$ | head -n1))"
 else
   warn "the syslog receiver for Session Log could not start; the reason:"
   { grep -q "ERROR" /tmp/vault-syslog.$$ && sed -n '/ERROR/,$p' /tmp/vault-syslog.$$ || tail -n 8 /tmp/vault-syslog.$$; } | sed 's/^/      /' >&2
-  warn "fix it, then run: sudo bash $APP_DIR/deploy/enable_syslog.sh   (the rest of VAULT works without it)"
+  warn "fix it, then run: sudo bash $APP_DIR/deploy/maintenance/enable_syslog.sh   (the rest of VAULT works without it)"
 fi
 rm -f /tmp/vault-syslog.$$
 
 if [ -n "${DOMAIN_REQ:-}" ]; then
   step "Domain $DOMAIN_REQ"
-  bash "$APP_DIR/deploy/set-domain.sh" "$DOMAIN_REQ" ${DOMAIN_EMAIL:+"$DOMAIN_EMAIL"} \
-    || warn "the domain could not be set up now; later run: sudo bash $APP_DIR/deploy/set-domain.sh $DOMAIN_REQ"
+  bash "$APP_DIR/deploy/maintenance/set-domain.sh" "$DOMAIN_REQ" ${DOMAIN_EMAIL:+"$DOMAIN_EMAIL"} \
+    || warn "the domain could not be set up now; later run: sudo bash $APP_DIR/deploy/maintenance/set-domain.sh $DOMAIN_REQ"
 fi
 
 printf "\n${c_g}Done.${c_0} %s finished. Open the website and press Ctrl+F5.\n" "$([ $MODE = install ] && echo Installation || echo Update)"

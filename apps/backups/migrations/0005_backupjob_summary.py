@@ -3,7 +3,7 @@ from django.db import migrations, models
 
 def fill_summaries(apps, schema_editor):
     """Give jobs that finished before this version their summary, so the Backup Jobs page can list them."""
-    from apps.backups.tasks.backup_jobs import summarize
+    from apps.backups.jobs import summarize
     BackupJob = apps.get_model("backups", "BackupJob")
     for job in BackupJob.objects.filter(finished=True):
         BackupJob.objects.filter(pk=job.pk).update(summary=summarize(job.results))

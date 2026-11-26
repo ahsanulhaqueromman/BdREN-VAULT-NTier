@@ -2,8 +2,8 @@ from django.core.management.base import BaseCommand
 from django.db import connections, models
 
 from apps.radius.models import AuditLog, NasRole, UserDevice, UserGrant
-from apps.radius.repositories.db_router import DB
-from apps.radius.services.radius_service import convert_legacy_limits, normalize_roles, seed_groups
+from apps.radius.repositories import DB
+from apps.radius.services import convert_legacy_limits, normalize_roles, seed_groups
 
 
 class Command(BaseCommand):

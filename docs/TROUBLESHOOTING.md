@@ -274,7 +274,7 @@ sudo journalctl -u vault-syslog -n 50 --no-pager
 sudo ss -ulnp | grep ':514 '                    # must show python (the receiver)
 ```
 
-Not installed or not running: `sudo bash /opt/vault/deploy/enable_syslog.sh`. If it says the port is used
+Not installed or not running: `sudo bash /opt/vault/deploy/maintenance/enable_syslog.sh`. If it says the port is used
 by another program (usually rsyslog with network input), comment out the `imudp` lines in
 `/etc/rsyslog.conf` and `sudo systemctl restart rsyslog`, or set `SYSLOG_PORT=5514` in `.env`, run the
 script again and send the device logs to that port.
@@ -370,4 +370,4 @@ Press **Ctrl+F5** in the browser once after every update.
 | `/etc/nginx/sites-available/dbms` | nginx site |
 | `/etc/freeradius/3.0/` | FreeRADIUS configuration |
 | `/var/backups/vault/` | Previous versions saved by updates |
-| `/var/backups/vault-dr/` | Disaster-recovery copies from `deploy/backup_vault.sh` |
+| `/var/backups/vault-dr/` | Disaster-recovery copies from `deploy/maintenance/backup_vault.sh` |

@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from apps.devices.models import Device
-from apps.scheduling.services.schedule_service import put_settings
+from apps.scheduling.services import put_settings
 
 
 class Command(BaseCommand):

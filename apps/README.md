@@ -1,58 +1,73 @@
-# Domain apps
+# Apps
 
-Every business area of VAULT is one app, and every app is built the same way. Learn one, and you can read all seven.
+Every business area of VAULT is one app, and every app has the same files. Learn one, and you can read all seven.
 
-## The four tiers inside an app
+## One file per layer
 
-```
- Browser  ──HTTPS──>  api/            1. PRESENTATION   views.py, urls.py
-                         │                               reads the request, checks the role, answers in JSON
-                         ▼
-                      services/       2. BUSINESS       <app>_service.py
-                         │                               rules and every change (validation, writes, transactions)
-                         ▼
-                      selectors/      3. DATA ACCESS    <app>_selectors.py
-                         │                               every database read; never changes anything
-                         ▼
-                      models/         4. ENTITIES       the tables
-                         │
-                         ▼
-                      MariaDB  (dbms, radius)
-```
-
-Some apps also have:
-
-| Folder | Job | Where |
+| Layer | File | Main job |
 |---|---|---|
-| `tasks/` | Work that runs in the background | `backups/tasks/backup_jobs.py` (parallel backups), `commandlog/tasks/syslog_receiver.py` (UDP 514) |
-| `integrations/` | Talking to the outside world | `backups/integrations/ssh_engine.py` (SSH to devices), `commandlog/integrations/syslog_parsers.py` (vendor log formats) |
-| `repositories/` | Data that is not a normal table | `backups/repositories/backup_storage.py` (backup files on disk), `radius/repositories/db_router.py` (the FreeRADIUS database) |
+| Presentation | `views.py` (+ `urls.py`) | Receive the client's request and send the response |
+| Presentation | `serializers.py` | Turn objects into JSON (passwords never leave the server) |
+| Business logic | `services.py` | The rules and every change (add a device, start a backup, lock a user ...) |
+| Data access | `repositories.py` | Stores that are not ordinary tables: backup files on disk, the FreeRADIUS database |
+| Data access | `selectors.py` | Every database read and filter; never changes anything |
+| Database | `models.py` | The tables and their fields |
 
-## Example: an operator presses "Backup now" on a device
+```
+ Browser ──HTTPS──> views.py        PRESENTATION    receive the request, check the role
+                       │            serializers.py  object -> JSON
+                       ▼
+                    services.py     BUSINESS LOGIC  rules and every change
+                       │
+                       ▼
+                    selectors.py    DATA ACCESS     every read
+                    repositories.py                 backup files on disk, the FreeRADIUS database
+                       │
+                       ▼
+                    models.py       DATABASE        tables and fields
+                       │
+                       ▼
+                    MariaDB (dbms, radius)
+```
 
-1. `apps/backups/api/views.py` checks the role (`@api(POST="operator")`) and calls the service.
-2. `apps/backups/tasks/backup_jobs.py` starts a background job.
-3. `apps/backups/integrations/ssh_engine.py` logs in to the device over SSH and reads the configuration.
-4. `apps/backups/services/backup_service.py` compares it with the last version and decides: changed or unchanged.
-5. `apps/backups/repositories/backup_storage.py` saves the file; `apps/backups/models/backup.py` records the result.
+Some apps have extra files for their own work:
+
+| File | Job |
+|---|---|
+| `backups/jobs.py` | Background backup jobs (many devices in parallel) |
+| `backups/engine.py` | SSH login to one device and read its configuration |
+| `backups/reports.py` | Change report (what changed between versions) |
+| `backups/audit.py` | The audit trail: who did what, when, from which address |
+| `commandlog/receiver.py` | Syslog receiver on UDP 514 (service `vault-syslog`) |
+| `commandlog/parsers.py` | One syslog line to a user action (Huawei, Cisco, Juniper, MikroTik, Fortinet) |
+| `devices/vendors.py` | Vendor table: login driver, backup command, host-name parser |
+| `monitoring/cache_keys.py` | Names of the ping cache entries |
+
+## Example: an operator presses "Backup now"
+
+1. `backups/views.py` checks the role (`@api(POST="operator")`) and calls the service.
+2. `backups/jobs.py` starts a background job.
+3. `backups/engine.py` logs in to the device over SSH and reads the configuration.
+4. `backups/services.py` compares it with the last version: changed or unchanged.
+5. `backups/repositories.py` saves the file; `backups/models.py` (BackupLog) records the result.
 
 ## The apps
 
-| App | What it does | Main files |
-|---|---|---|
-| `accounts` | Portal users, sign-in, lockout, roles | `services/account_service.py`, `models/account.py` |
-| `devices` | Device inventory and saved logins | `services/device_service.py`, `vendors.py` |
-| `backups` | Configuration backups, versions, reports, audit trail | `services/backup_service.py`, `tasks/backup_jobs.py`, `integrations/ssh_engine.py` |
-| `monitoring` | Ping monitor, Dashboard numbers, server health | `services/monitoring_service.py`, `selectors/monitoring_selectors.py` |
-| `scheduling` | Settings and the automatic backup timer | `services/schedule_service.py` |
-| `radius` | FreeRADIUS users, levels, NAS clients, Authentication Audit | `services/radius_service.py`, `repositories/db_router.py` |
-| `commandlog` | Session Log: who ran which command on which device | `tasks/syslog_receiver.py`, `integrations/syslog_parsers.py` |
+| App | What it does |
+|---|---|
+| `accounts` | Portal users, sign-in, lockout, roles |
+| `devices` | Device inventory and saved logins |
+| `backups` | Configuration backups, versions, change reports, audit trail |
+| `monitoring` | Ping monitor, Dashboard numbers, server health |
+| `scheduling` | Settings and the automatic backup timer |
+| `radius` | FreeRADIUS users, levels, NAS clients, Authentication Audit |
+| `commandlog` | Session Log: who ran which command on which device |
 
 `core/` (next to `apps/`) is shared by every app: the page registry, the `api()` role check, exceptions,
 security headers, background tasks, encryption of device passwords and every `manage.py` command.
 
 ## The rules (checked by `python manage.py check_architecture`)
 
-- A tier only calls the tiers below it: `api/` never touches the database, `selectors/` never changes data.
-- Another app is used only through its `services/` or `selectors/`, never its `api/` or `models/`.
-- Imports are absolute: `from apps.devices.selectors import device_selectors`.
+- A layer only calls the layers below it: `views.py` never touches the database, `selectors.py` never changes data.
+- Another app is used only through its public files (`services.py`, `selectors.py` ...), never its `views.py` or `models.py`.
+- Imports are absolute: `from apps.devices import selectors`.

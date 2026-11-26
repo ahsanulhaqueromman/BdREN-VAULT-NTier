@@ -45,7 +45,7 @@ versions, so **test on one device first** and compare the saved file with a full
 ## Domain name
 
 ```bash
-sudo bash /opt/vault/deploy/set-domain.sh backup.example.com you@example.com
+sudo bash /opt/vault/deploy/maintenance/set-domain.sh backup.example.com you@example.com
 ```
 
 Needs a DNS A record to the server and ports 80 / 443 open. Issues a Let's Encrypt certificate (renewed
@@ -64,7 +64,7 @@ For fixing problems, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 | RADIUS users get the right level | `sudo bash /opt/vault/deploy/radius/check_levels.sh` |
 | FreeRADIUS has room for a big backup run | `sudo bash /opt/vault/deploy/radius/check_capacity.sh` |
 | FreeRADIUS configuration | `sudo freeradius -XC` |
-| Everything after an operating-system update | `sudo bash /opt/vault/deploy/after_os_update.sh` (read-only) |
+| Everything after an operating-system update | `sudo bash /opt/vault/deploy/maintenance/after_os_update.sh` (read-only) |
 
 ## Operating-system updates
 
@@ -77,15 +77,15 @@ For fixing problems, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
   ```bash
   git pull && sudo bash deploy/install.sh        # rebuilds the Python environment if needed, re-applies VAULT's FreeRADIUS setup
-  sudo bash /opt/vault/deploy/after_os_update.sh # read-only check: environment, services, FreeRADIUS, health
+  sudo bash /opt/vault/deploy/maintenance/after_os_update.sh # read-only check: environment, services, FreeRADIUS, health
   ```
 
-- Before a release upgrade take a VM snapshot and run `sudo bash /opt/vault/deploy/backup_vault.sh`.
+- Before a release upgrade take a VM snapshot and run `sudo bash /opt/vault/deploy/maintenance/backup_vault.sh`.
 
 ## Back up the server (disaster recovery)
 
 ```bash
-sudo bash /opt/vault/deploy/backup_vault.sh
+sudo bash /opt/vault/deploy/maintenance/backup_vault.sh
 ```
 
 Dumps both databases (`dbms`, `radius`) and copies `secret.key` / `session.key` / the SSH host-key files into

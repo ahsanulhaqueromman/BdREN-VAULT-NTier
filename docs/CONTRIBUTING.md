@@ -56,17 +56,17 @@ one they show "RADIUS database is not reachable", and everything else works.
 ## Add a JSON endpoint
 
 ```python
-# apps/inventory/selectors/inventory_selectors.py  - reads
+# apps/inventory/selectors.py  - reads
 def racks():
     return [{"id": r.id, "name": r.name} for r in Rack.objects.order_by("name")]
 
-# apps/inventory/services/inventory_service.py    - rules and changes
+# apps/inventory/services.py   - rules and changes
 def create_rack(name):
     if not name:
         raise ApiError(400, "Enter a name for the rack.")      # shown to the user as a clear message
     return Rack.objects.create(name=name)
 
-# apps/inventory/api/views.py                     - HTTP only
+# apps/inventory/views.py      - HTTP only
 @api(GET="viewer", POST="operator")          # method -> lowest role allowed
 def racks(request):
     if request.method == "GET":

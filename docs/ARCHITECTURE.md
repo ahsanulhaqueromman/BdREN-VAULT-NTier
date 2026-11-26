@@ -29,30 +29,39 @@ How the VAULT is put together. For "which file does what", see
 
 ## Layered architecture (server)
 
-Every business area is one app in `apps/`, and every app is split into the same tiers. A module may only use
-the tiers **below** it:
+Every business area is one app in `apps/`, and every app has one file per layer. A file may only use the
+layers **below** it:
 
 ```
- api/            1. PRESENTATION   urls.py, views.py: read the request → call a service / selector → answer
-     │                             + record the audit entry (it needs the request: user and IP)
+ views.py, urls.py   PRESENTATION    read the request → call a service / selector → answer (JSON / page)
+ serializers.py                      object → JSON (passwords never leave the server)
+     │                               + record the audit entry (it needs the request: user and IP)
      ▼
- services/       2. BUSINESS       rules and every change: validation, writes, transactions
- tasks/                            background work: backup jobs, the syslog receiver
+ services.py         BUSINESS LOGIC  rules and every change: validation, writes, transactions
+ jobs.py, receiver.py                background work: backup jobs, the syslog receiver
      │
      ▼
- selectors/      3. DATA ACCESS    every database read; never changes anything
- repositories/                     backup files on disk, the second (radius) database
- integrations/                     SSH to devices (ssh_engine.py), vendor syslog formats (syslog_parsers.py)
+ selectors.py        DATA ACCESS     every database read; never changes anything
+ repositories.py                     backup files on disk, the second (radius) database
+ engine.py, parsers.py               SSH to devices, vendor syslog formats
      │
      ▼
- models/         4. ENTITIES       tables only
+ models.py           DATABASE        tables and fields only
 ```
 
-One feature is always found the same way: `apps/devices/api/views.py` → `apps/devices/services/device_service.py`
-→ `apps/devices/selectors/device_selectors.py` → `apps/devices/models/device.py`.
-How to read an app: [apps/README.md](../apps/README.md).
+| Layer | File | Main job |
+|---|---|---|
+| Presentation | `views.py` (+ `urls.py`) | Receive the client's request and send the response |
+| Presentation | `serializers.py` | Turn objects into JSON (passwords never leave the server) |
+| Business logic | `services.py` | The rules and every change (add a device, start a backup, lock a user ...) |
+| Data access | `repositories.py` | Stores that are not ordinary tables: backup files on disk, the FreeRADIUS database |
+| Data access | `selectors.py` | Every database read and filter; never changes anything |
+| Database | `models.py` | The tables and their fields |
 
-| App | api/ | services/ | selectors/ | tasks/, integrations/, repositories/ |
+One feature is always found the same way: `apps/devices/views.py` → `apps/devices/services.py`
+→ `apps/devices/selectors.py` → `apps/devices/models.py`. How to read an app: [apps/README.md](../apps/README.md).
+
+| App | views.py | services.py | selectors.py | other files |
 |---|---|---|---|---|
 | `accounts` | sign-in pages, `/api/me`, `/api/users` | password rules, lockout, user changes | users, sign-in history | |
 | `devices` | `/api/devices`, `/api/credentials` | validation, add / edit / delete, saved logins | inventory, saved login profiles | |
@@ -65,7 +74,7 @@ How to read an app: [apps/README.md](../apps/README.md).
 
 **Between apps** only the public parts are used: another app's `selectors`, `services` (and `audit`,
 `vendors`, `jobs`, `engine`). Example: the Dashboard reads backup numbers with
-`apps.backups.selectors.backup_selectors.results_per_day()`, never `BackupLog.objects`. `core/` is the shared kernel
+`apps.backups.selectors.results_per_day()`, never `BackupLog.objects`. `core/` is the shared kernel
 every app may use; `core/background.py` is the composition root that starts the periodic services.
 Maintenance commands (`core/management/commands/`) may use any app's models directly, like migrations.
 
@@ -144,8 +153,8 @@ responsive) and `static/css/auth.css` for the sign-in page.
 
 ## Backups
 
-`apps/backups/tasks/backup_jobs.py` runs one job at a time: ping every device in parallel, then up to N SSH sessions
-(Settings → Performance). For each device `apps/backups/services/backup_service.py`:
+`apps/backups/jobs.py` runs one job at a time: ping every device in parallel, then up to N SSH sessions
+(Settings → Performance). For each device `apps/backups/services.py`:
 
 1. reads the configuration over SSH (`engine.py`, vendor command from `apps/devices/vendors.py`)
 2. compares it with the latest saved version, ignoring lines that change on every read (clock, timestamps)

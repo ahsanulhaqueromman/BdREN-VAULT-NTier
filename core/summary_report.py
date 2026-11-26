@@ -11,15 +11,15 @@ PERIODS = {"weekly": 7, "monthly": 30}   # label -> days back from now
 def build_summary(period):
     """Everything the report shows, gathered fresh for the chosen period ("weekly" = last 7 days,
     "monthly" = last 30 days, both ending now)."""
-    from apps.backups.selectors import backup_selectors as backups
-    from apps.backups.services import report_service
-    from apps.devices.selectors import device_selectors as devices
-    from apps.radius.selectors.radius_selectors import login_summary, recent_logins
+    from apps.backups import selectors as backups
+    from apps.backups import reports
+    from apps.devices import selectors as devices
+    from apps.radius.selectors import login_summary, recent_logins
 
     days = PERIODS.get(period, 7)
     end = timezone.localtime()
     start = end - timezone.timedelta(days=days)
-    changes = report_service.change_report(start=start, end=end)
+    changes = reports.change_report(start=start, end=end)
     backup_counts = backups.backup_counts_between(start, end)
     logins = login_summary(since=start, until=end)
     login_rows, _ = recent_logins(since=start, until=end, limit=2000)

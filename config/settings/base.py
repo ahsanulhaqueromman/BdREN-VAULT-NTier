@@ -156,7 +156,7 @@ if not DATABASES["default"]["PASSWORD"]:
     sys.exit("DBMS_DB_PASSWORD is not set. Add it to the .env file.")
 
 # ---------- RADIUS Admin: second database, shared with FreeRADIUS ----------
-# The rad* and nas tables come from the FreeRADIUS schema.sql; apps/radius/repositories/db_router.py sends the
+# The rad* and nas tables come from the FreeRADIUS schema.sql; apps/radius/repositories.py sends the
 # RADIUS pages to this database and keeps every other table in "default".
 DATABASES["radius"] = {
     "ENGINE": "django.db.backends.mysql",
@@ -168,7 +168,7 @@ DATABASES["radius"] = {
     "CONN_MAX_AGE": 60,
     "OPTIONS": {"charset": "utf8mb4"},
 }
-DATABASE_ROUTERS = ["apps.radius.repositories.db_router.RadiusRouter"]
+DATABASE_ROUTERS = ["apps.radius.repositories.RadiusRouter"]
 # FreeRADIUS reads the nas table only at start, so it is restarted after a device is added or removed.
 RADIUS_RELOAD_CMD = os.environ.get("RADIUS_RELOAD_CMD", "sudo -n /usr/bin/systemctl restart freeradius")
 # 1 = FreeRADIUS looks new switches up in the nas table on their first request (deploy/radius/
@@ -177,7 +177,7 @@ RADIUS_DYNAMIC_CLIENTS = env_flag("RADIUS_DYNAMIC_CLIENTS")
 # Keeps UDP 1812/1813 open in ufw only for the devices on NAS Clients, run after a device is added or
 # removed. Set by deploy/radius/enable_firewall_sync.sh (sudo -n /usr/local/sbin/vault-radius-firewall); empty = off
 RADIUS_FIREWALL_CMD = os.environ.get("RADIUS_FIREWALL_CMD", "").strip()
-# RADIUS user passwords are always stored as salted SHA-256 (apps/radius/services/radius_service.py hash_password); the old
+# RADIUS user passwords are always stored as salted SHA-256 (apps/radius/services.py hash_password); the old
 # RADIUS_PASSWORD_MODE setting is no longer read.
 
 # ---------- users and sessions ----------

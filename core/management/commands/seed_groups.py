@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from apps.radius.services.radius_service import seed_groups
+from apps.radius.services import seed_groups
 
 
 class Command(BaseCommand):

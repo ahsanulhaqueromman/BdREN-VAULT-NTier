@@ -1,16 +1,19 @@
 """The architecture rules of this project, checked automatically.
 
-Every domain app (apps/<area>/) is split into the same tiers. A module may only use the tiers below it:
+Every app (apps/<app>/) has one file per layer. A file may only use the layers below it:
 
-    api/            1. PRESENTATION   urls.py, views.py: read the request, call a service / selector, answer
-    services/       2. BUSINESS       rules and every change (validation, writes, transactions)
-    tasks/                            background jobs (threads started by core/background.py)
-    selectors/      3. DATA ACCESS    every database read; never changes data
-    repositories/                     other stores: backup files on disk, the second (radius) database
-    integrations/                     the outside world: SSH to devices, the syslog receiver
-    models/         4. ENTITIES       tables only
+    PRESENTATION   views.py, urls.py        receive the request, call a service / selector, send the response
+                   serializers.py           turn objects into JSON (passwords never leave the server)
+    BUSINESS       services.py              rules and every change (validation, writes, transactions)
+                   jobs.py, receiver.py,    background work and extra business files of an app
+                   reports.py, audit.py
+    DATA ACCESS    selectors.py             every database read; never changes anything
+                   repositories.py          stores that are not ordinary tables: backup files on disk,
+                                            the second (radius) database
+                   engine.py, parsers.py    the outside world: SSH to devices, vendor syslog formats
+    DATABASE       models.py                tables and fields only
 
-Between apps only the public parts of another app may be used (PUBLIC below), never its api/ or models/.
+Between apps only the public files of another app may be used (PUBLIC below), never its views or models.
 core/ is the shared kernel every app may use. Maintenance commands (core/management/commands/), admin.py and
 migrations may use any model directly.  Run:  python manage.py check_architecture
 """
@@ -20,18 +23,25 @@ from pathlib import Path
 
 from django.conf import settings
 
-# the folders of an app and the folders of the SAME app they must not import
+PRESENTATION = {"views", "urls", "serializers"}
+# file of an app : files of the SAME app it must not import
 FORBIDDEN = {
-    "models": {"api", "services", "selectors", "tasks", "repositories", "integrations"},
-    "selectors": {"api", "services"},
-    "repositories": {"api", "services", "tasks"},
-    "integrations": {"api", "services", "tasks"},
-    "services": {"api"},
-    "tasks": {"api"},
+    "models": PRESENTATION | {"services", "selectors", "repositories", "jobs", "receiver", "reports", "audit",
+                              "engine", "parsers"},
+    "selectors": PRESENTATION | {"services"},
+    "repositories": PRESENTATION | {"services", "jobs"},
+    "engine": PRESENTATION | {"services", "jobs"},
+    "parsers": PRESENTATION | {"services", "jobs"},
+    "services": PRESENTATION,
+    "jobs": PRESENTATION,
+    "receiver": PRESENTATION,
+    "reports": PRESENTATION,
+    "audit": PRESENTATION,
+    "serializers": {"views", "urls", "services"},
 }
-# parts of another app that may be imported (its public face)
-PUBLIC = {"services", "selectors", "tasks", "integrations", "repositories", "vendors", "cache_keys"}
-API = "api"
+# files of another app that may be imported (its public face)
+PUBLIC = {"services", "selectors", "jobs", "engine", "repositories", "audit", "reports", "vendors", "cache_keys",
+          "serializers"}
 
 
 @dataclass
@@ -55,54 +65,53 @@ def _imports(tree):
 
 
 def _targets(base, names):
-    """[(app, part)] an import points to: part is the folder (api, services ...) or root module of the app."""
+    """[(app, file)] an import points to."""
     parts = base.split(".")
     if parts[0] != "apps" or len(parts) < 2:
         return []
-    if len(parts) == 2:                               # "from apps.devices import vendors"
+    if len(parts) == 2:                               # "from apps.devices import selectors"
         return [(parts[1], n) for n in names]
     return [(parts[1], parts[2])]
-
-
-def _part(rel_parts):
-    """The tier of a file inside apps/<app>/: its folder, or the module name for a file in the app root."""
-    return rel_parts[1] if len(rel_parts) > 2 else Path(rel_parts[1]).stem
 
 
 def check(root=None):
     """Return every Violation found (empty list = the architecture is respected)."""
     root = Path(root or settings.BASE_DIR)
     found = []
-    files = sorted((root / "apps").rglob("*.py")) + sorted((root / "core").rglob("*.py"))
-    for path in files:
+    for path in sorted((root / "apps").rglob("*.py")) + sorted((root / "core").rglob("*.py")):
         rel = path.relative_to(root).as_posix()
         parts = path.relative_to(root).parts
         if "migrations" in parts or "tests" in parts or path.name.startswith("test"):
             continue
         in_core = parts[0] == "core"
-        command = in_core and "management" in parts
-        app = None if in_core else parts[1]
-        part = "core" if in_core else (_part(parts[1:]) if len(parts) > 2 else "")
+        if in_core and "management" in parts:
+            continue
+        app = None if in_core else (parts[1] if len(parts) > 2 else None)
+        if not in_core and app is None:
+            continue
+        layer = "core" if in_core else path.stem
+        if layer == "admin":
+            continue
         text = path.read_text(encoding="utf-8")
-        if part == API:
+        if layer in PRESENTATION:
             for i, line in enumerate(text.splitlines(), 1):
                 code = line.split("#", 1)[0]
                 if ".objects." in code or "transaction.atomic" in code or "connection.cursor" in code:
-                    found.append(Violation(rel, i, "api/ must not query the database: use a selector or service"))
+                    found.append(Violation(rel, i, f"{layer}.py must not query the database: use a selector or service"))
         for line, base, names in _imports(ast.parse(text)):
             if base is None:
-                found.append(Violation(rel, line, "use absolute imports (apps.<app>.<folder>.<module>)"))
+                found.append(Violation(rel, line, "use absolute imports (from apps.<app> import <file>)"))
                 continue
-            for t_app, t_part in _targets(base, names):
-                if command or part == "admin":
-                    continue
-                if in_core and t_part == API:
-                    found.append(Violation(rel, line, f"core must not import an app's api/ ({t_app}.api)"))
-                if part == API and t_part == "models":
-                    found.append(Violation(rel, line, f"api/ must not import models ({t_app}.models): use a selector"))
-                if t_app == app and t_part in FORBIDDEN.get(part, ()):
-                    found.append(Violation(rel, line, f"{part}/ must not import {t_part}/ (tiers point downwards only)"))
-                if not in_core and t_app != app and t_part not in PUBLIC and not (t_part == "models" and part == "models"):
-                    found.append(Violation(rel, line, f"use the public parts of {t_app} (services, selectors ...), "
-                                                      f"not {t_app}.{t_part}"))
+            for t_app, t_file in _targets(base, names):
+                if in_core and t_file in PRESENTATION:
+                    found.append(Violation(rel, line, f"core must not import an app's {t_file}.py ({t_app})"))
+                if layer in PRESENTATION and t_file == "models":
+                    found.append(Violation(rel, line, f"{layer}.py must not import models ({t_app}.models): "
+                                                      f"use a selector"))
+                if t_app == app and t_file in FORBIDDEN.get(layer, ()):
+                    found.append(Violation(rel, line, f"{layer}.py must not import {t_file}.py "
+                                                      f"(layers point downwards only)"))
+                if not in_core and t_app != app and t_file not in PUBLIC and not (t_file == "models" and layer == "models"):
+                    found.append(Violation(rel, line, f"use the public files of {t_app} (services, selectors ...), "
+                                                      f"not {t_app}.{t_file}"))
     return found

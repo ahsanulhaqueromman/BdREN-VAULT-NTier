@@ -4,7 +4,7 @@
 
 /* ============================================================================
    RADIUS Admin (side menu -> RADIUS Admin): users, devices (NAS) and audit.
-   Pages: templates/radius/index.html. Data: /api/radius/* (apps/radius/api/views.py), administrators only.
+   Pages: templates/radius/index.html. Data: /api/radius/* (apps/radius/views.py), administrators only.
    Buttons inside the tables use data-rad-* attributes because inline onclick is blocked by the Content-Security-Policy.
    ============================================================================ */
 let radUsers=[],radLevels=[],radNas=[],radVendors=[],radRoles=[],radLogins=[];

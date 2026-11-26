@@ -5,7 +5,7 @@ the same passwords. deploy/install.sh runs it with --yes; by hand:
 """
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.radius.services.radius_service import cleartext_users, hash_cleartext_passwords
+from apps.radius.services import cleartext_users, hash_cleartext_passwords
 
 
 class Command(BaseCommand):

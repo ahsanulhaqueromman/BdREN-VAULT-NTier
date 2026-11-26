@@ -1,7 +1,7 @@
 /* VAULT - core/notifications.js
    The top-bar notifications bell: shows problems that need attention (failed backups, devices waiting to
    retry, RADIUS device limits not enforced), grouped with a count each. Loaded on every app screen.
-   Data: GET /api/notifications (apps/backups/api/views.py). The bell is in templates/base.html. */
+   Data: GET /api/notifications (apps/backups/views.py). The bell is in templates/base.html. */
 
 const NOTIF_IC={
   backup:'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',

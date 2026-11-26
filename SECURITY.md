@@ -34,10 +34,10 @@ Known limitations are listed in [README.md](README.md#security).
 
 ## Operator checklist
 
-- [ ] Use a domain name with a real certificate (`deploy/set-domain.sh`) instead of the self-signed one
+- [ ] Use a domain name with a real certificate (`deploy/maintenance/set-domain.sh`) instead of the self-signed one
 - [ ] Give the backup account on each device permission to **view** the configuration only, never to change it
 - [ ] Keep one local administrator account on every device in case RADIUS is unreachable
-- [ ] Run `deploy/backup_vault.sh` nightly and copy `/var/backups/vault-dr/` off the server
+- [ ] Run `deploy/maintenance/backup_vault.sh` nightly and copy `/var/backups/vault-dr/` off the server
 - [ ] Keep `data/secret.key` in a safe place outside the server; without it saved device passwords cannot be recovered
 - [ ] Remove portal accounts of people who leave, and review the Authentication Audit regularly
 - [ ] Update regularly: `git pull` then `sudo bash deploy/install.sh`
