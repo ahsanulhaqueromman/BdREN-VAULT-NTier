@@ -216,7 +216,7 @@ if ! py migrate --noinput; then
   rollback; die "The database update failed, so the previous version was restored. Send the log above to support."
 fi
 ok "database is up to date"
-if [ "$(py shell -c 'from persistence.accounts.models import User; print(User.objects.exists())' 2>/dev/null | tail -n1)" != "True" ]; then
+if [ "$(py shell -c 'from apps.accounts.models import User; print(User.objects.exists())' 2>/dev/null | tail -n1)" != "True" ]; then
   if [ "$ASSUME_YES" = 1 ] || [ ! -t 0 ]; then
     warn "no administrator yet: open http://127.0.0.1/setup on the server, or run this script again without --yes"
   else

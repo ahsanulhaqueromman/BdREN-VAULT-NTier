@@ -105,7 +105,7 @@ Then hard-refresh the site once: **Ctrl+F5**.
 
 ### Code-only update (without running install.sh)
 
-If you only changed presentation/templates/static/python and don't want the full installer:
+If you only changed templates/static/python and don't want the full installer:
 
 ```bash
 cd ~/BdREN-VAULT && git pull
