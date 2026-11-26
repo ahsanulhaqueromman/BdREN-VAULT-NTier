@@ -554,7 +554,9 @@ One feature is found in the same place in each tier, for example Devices:
 | 2. Application | `application/devices/` | `services.py` (changes), `selectors.py` (reads), `vendors.py` |
 | 3. Persistence | `persistence/devices/` | `models.py`, `migrations/`, `apps.py` |
 
-A tier only calls the tier below it; `python manage.py check_architecture` enforces this. A file-by-file guide is in [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md).
+A tier only calls the tier below it; `python manage.py check_architecture` enforces this.
+Each tier folder has its own guide: [presentation/README.md](presentation/README.md),
+[application/README.md](application/README.md), [persistence/README.md](persistence/README.md). A file-by-file guide is in [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md).
 
 ---
 

@@ -5,7 +5,7 @@ from application.core.architecture import check
 
 
 class Command(BaseCommand):
-    help = "Check that every app follows the layered architecture (HTTP -> services / selectors -> models)."
+    help = "Check the N-tier rules (presentation -> application -> persistence)."
 
     def handle(self, *args, **options):
         problems = check()
