@@ -7,8 +7,8 @@ The code is split into four tiers (top-level folders); inside each tier is one f
 | Tier | Folder | Files | Main job |
 |---|---|---|---|
 | 1 Presentation | `presentation/<app>/` | `views.py`, `urls.py`, `serializers.py` (+ `presentation/templates/`, `presentation/static/`) | Receive the request, send the response; passwords never leave the server |
-| 2 Business logic | `business/<app>/` | `services.py` (+ `jobs.py`, `reports.py`, `receiver.py`) | The rules and every change (add a device, start a backup, lock a user ...) |
-| 3 Data access | `data_access/<app>/` | `selectors.py`, `repositories.py` (+ `engine.py`, `audit.py`, `parsers.py`, `vendors.py`, `cache_keys.py`) | Every read; backup files on disk; the FreeRADIUS database; SSH to devices |
+| 2 Business logic | `business/<app>/` | `services.py` (+ `backup_jobs.py`, `change_reports.py`, `syslog_receiver.py`) | The rules and every change (add a device, start a backup, lock a user ...) |
+| 3 Data access | `data_access/<app>/` | `selectors.py`, `repositories.py` (+ `ssh_client.py`, `audit_log.py`, `syslog_parsers.py`, `vendor_registry.py`, `cache_keys.py`) | Every read; backup files on disk; the FreeRADIUS database; SSH to devices |
 | 4 Database | `database/<app>/` | `models.py`, `migrations/`, `apps.py`, `admin.py` | The tables and their fields |
 
 Shared code is in `core/`. Each tier folder has a short README.
@@ -24,22 +24,22 @@ Shared code is in `core/`. Each tier folder has a short README.
 | Notifications, API calls, dates, pager | `presentation/static/js/core/helpers.js` |
 | Colours, spacing, the look | `presentation/static/css/app.css` (tokens at the top); sign-in page: `presentation/static/css/auth.css` |
 | Sign-in page | `presentation/templates/accounts/auth.html`, `presentation/accounts/views.py`, `presentation/static/js/pages/auth.js` |
-| Supported device types (Cisco, Huawei, Fortinet ...) | `data_access/devices/vendors.py` |
+| Supported device types (Cisco, Huawei, Fortinet ...) | `data_access/devices/vendor_registry.py` |
 | A list or number shown on a page (database read) | `data_access/<app>/selectors.py` |
 | A rule or a change (add, edit, delete, start) | `business/<app>/services.py` |
 | A table or a column | `database/<app>/models.py`, then `python manage.py makemigrations` |
 | The tier rules and their check | `core/architecture.py`, `python manage.py check_architecture` |
-| How a backup is taken from a device (SSH) | `data_access/backups/engine.py` |
+| How a backup is taken from a device (SSH) | `data_access/backups/ssh_client.py` |
 | When a backup is saved or skipped | `business/backups/services.py` |
 | Where backup files are stored on disk | `data_access/backups/repositories.py` |
-| Background backup jobs (parallel, progress) | `business/backups/jobs.py` |
+| Background backup jobs (parallel, progress) | `business/backups/backup_jobs.py` |
 | Ping and the background ping monitor | `business/monitoring/services.py` |
 | Dashboard numbers (Needs attention, recent changes, logins, health) | `data_access/monitoring/selectors.py`, `presentation/static/js/pages/dashboard.js` |
 | Settings page, automatic backup timer | `business/scheduling/services.py` |
 | Web users, roles, sign-in lockout | `business/accounts/services.py`, `database/accounts/models.py` |
 | RADIUS users, levels, NAS, audit | `business/radius/services.py`, `presentation/radius/views.py` |
 | FreeRADIUS policies and setup scripts | `deploy/radius/` |
-| Session Log: syslog receiver, vendor message formats | `business/commandlog/receiver.py`, `data_access/commandlog/parsers.py` |
+| Session Log: syslog receiver, vendor message formats | `business/commandlog/syslog_receiver.py`, `data_access/commandlog/syslog_parsers.py` |
 | Server settings (environment) | `config/settings/base.py` and `.env` |
 
 ## Project layout
@@ -76,17 +76,17 @@ presentation/            TIER 1: one folder per app with views.py (+ urls.py)
     dashboard/ devices/ backups/ reports/ jobs/ logs/ accounts/ settings/ radius/   one folder per screen
 
 business/                TIER 2: one folder per app with services.py
-  backups/jobs.py        Parallel backup jobs in a background thread (second pass, retry queue)
-  backups/reports.py     Change report (diff of versions per month range)
-  commandlog/receiver.py UDP syslog receiver (manage.py syslog_receive, service vault-syslog)
+  backups/backup_jobs.py        Parallel backup jobs in a background thread (second pass, retry queue)
+  backups/change_reports.py     Change report (diff of versions per month range)
+  commandlog/syslog_receiver.py UDP syslog receiver (manage.py syslog_receive, service vault-syslog)
 
 data_access/             TIER 3: one folder per app with selectors.py
-  devices/vendors.py     Vendor table: login driver, backup command, name parser
+  devices/vendor_registry.py     Vendor table: login driver, backup command, name parser
   backups/repositories.py  Backup files in data/backups/<device>/<YYYY>/<Mon>/<DD>/ (all-or-nothing saves)
-  backups/engine.py      SSH login to ONE device and read its configuration
-  backups/audit.py       The audit trail: record_audit() and its reads
+  backups/ssh_client.py      SSH login to ONE device and read its configuration
+  backups/audit_log.py       The audit trail: record_audit() and its reads
   radius/repositories.py Sends the FreeRADIUS tables to the second database (`radius`)
-  commandlog/parsers.py  One syslog line -> user action (Huawei, Cisco, Juniper, MikroTik, Fortinet)
+  commandlog/syslog_parsers.py  One syslog line -> user action (Huawei, Cisco, Juniper, MikroTik, Fortinet)
   monitoring/cache_keys.py  Ping cache keys
 
 database/                TIER 4: one folder per app with models.py, migrations/, apps.py, admin.py

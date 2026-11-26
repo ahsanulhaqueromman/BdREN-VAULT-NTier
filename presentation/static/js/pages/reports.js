@@ -1,6 +1,6 @@
 /* VAULT - pages/reports.js
    Change Reports page (/reports): what changed on each device in a chosen month range.
-   Data: /api/reports/changes?from=YYYY-MM&to=YYYY-MM (business/backups/reports.py). Uses diffFile() / viewFile() from backups.js
+   Data: /api/reports/changes?from=YYYY-MM&to=YYYY-MM (business/backups/change_reports.py). Uses diffFile() / viewFile() from backups.js
    to open the changes, and paginate() / morph() from helpers.js.
    Loaded by presentation/templates/base.html on every screen; all scripts share one global scope (see core/helpers.js). */
 

@@ -14,7 +14,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from data_access.devices import selectors as devices
-from data_access.devices.vendors import HOSTRX
+from data_access.devices.vendor_registry import HOSTRX
 
 from data_access.monitoring.cache_keys import FAILS_KEY, LATEST_KEY
 from database.monitoring.models import PingHistory

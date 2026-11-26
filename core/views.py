@@ -9,7 +9,7 @@ from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonRespon
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from data_access.devices.vendors import vendor_menu, vendor_meta
+from data_access.devices.vendor_registry import vendor_menu, vendor_meta
 
 from core.pages import BY_KEY, DEVICE_PAGE, HOME, menu_for, page_urls, url_of
 

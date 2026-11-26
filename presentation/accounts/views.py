@@ -10,7 +10,7 @@ from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from data_access.backups.audit import record_audit, signin_summary
+from data_access.backups.audit_log import record_audit, signin_summary
 from core.api import ApiError, api
 from core.utils import parse_json
 

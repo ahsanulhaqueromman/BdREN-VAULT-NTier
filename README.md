@@ -534,14 +534,14 @@ BdREN-VAULT/
 │   └── static/               css/, js/core/, js/pages/, img/
 ├── business/                 TIER 2  Business logic: the rules and every change
 │   ├── devices/              services.py
-│   ├── backups/              services.py, jobs.py (background jobs), reports.py (change report)
-│   ├── commandlog/           services.py, receiver.py (syslog receiver)
+│   ├── backups/              services.py, backup_jobs.py (background jobs), change_reports.py (change report)
+│   ├── commandlog/           services.py, syslog_receiver.py (syslog receiver)
 │   └── ...                   accounts, monitoring, radius, scheduling: services.py
 ├── data_access/              TIER 3  Data access: every read, files on disk, the outside world
-│   ├── devices/              selectors.py, vendors.py (Cisco, Huawei, Fortinet ...)
-│   ├── backups/              selectors.py, repositories.py (backup files), engine.py (SSH), audit.py
+│   ├── devices/              selectors.py, vendor_registry.py (Cisco, Huawei, Fortinet ...)
+│   ├── backups/              selectors.py, repositories.py (backup files), ssh_client.py (SSH), audit_log.py
 │   ├── radius/               selectors.py, repositories.py (the FreeRADIUS database)
-│   ├── commandlog/           selectors.py, parsers.py (vendor log formats)
+│   ├── commandlog/           selectors.py, syslog_parsers.py (vendor log formats)
 │   └── ...                   accounts, monitoring, scheduling: selectors.py
 ├── database/                 TIER 4  Database: tables and fields
 │   ├── devices/              models.py, migrations/, apps.py, admin.py
@@ -587,8 +587,8 @@ One request always takes the same path, from the top tier down:
 | Tier | Folder | Files | Main job |
 |---|---|---|---|
 | 1 Presentation | `presentation/` | `views.py`, `urls.py`, `serializers.py`, `templates/`, `static/` | Receive the request, send the response; passwords never leave the server |
-| 2 Business logic | `business/` | `services.py` (+ `jobs.py`, `reports.py`, `receiver.py`) | The rules and every change (add a device, start a backup, lock a user ...) |
-| 3 Data access | `data_access/` | `selectors.py`, `repositories.py` (+ `engine.py`, `audit.py`, `parsers.py`, `vendors.py`) | Every read; backup files on disk; the FreeRADIUS database; SSH to devices |
+| 2 Business logic | `business/` | `services.py` (+ `backup_jobs.py`, `change_reports.py`, `syslog_receiver.py`) | The rules and every change (add a device, start a backup, lock a user ...) |
+| 3 Data access | `data_access/` | `selectors.py`, `repositories.py` (+ `ssh_client.py`, `audit_log.py`, `syslog_parsers.py`, `vendor_registry.py`) | Every read; backup files on disk; the FreeRADIUS database; SSH to devices |
 | 4 Database | `database/` | `models.py`, `migrations/` | The tables and their fields |
 
 A tier only calls the tiers below it; `python manage.py check_architecture` enforces this.

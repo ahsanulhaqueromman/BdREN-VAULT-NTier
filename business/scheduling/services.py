@@ -179,7 +179,7 @@ def is_due(values, now=None):
 def scheduler_tick():
     """One check of the timer: start a backup of every device when the schedule says it is due."""
     # imported here because backups.jobs imports this module (avoids a circular import)
-    from business.backups.jobs import job_running, start_job
+    from business.backups.backup_jobs import job_running, start_job
     from business.backups.services import trim_log_table
     from data_access.devices import selectors as devices
 
@@ -187,7 +187,7 @@ def scheduler_tick():
     # a fixed 20,000 rows held less than one night (the Dashboard chart and Activity Logs lost their history)
     trim_log_table(max(20000, devices.device_count() * 45))
     # Recover database state from a prior process crash before deciding what to run.
-    from business.backups.jobs import close_stale_jobs
+    from business.backups.backup_jobs import close_stale_jobs
     close_stale_jobs()
     values = all_settings()
     if job_running():

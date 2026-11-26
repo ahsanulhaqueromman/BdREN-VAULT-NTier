@@ -17,7 +17,7 @@ succeeded when started again a little later. Causes:
 
 ## The design
 
-### 1. Patient SSH session (data_access/backups/engine.py)
+### 1. Patient SSH session (data_access/backups/ssh_client.py)
 - **Activity timer instead of a stopwatch.** While the device keeps sending data, VAULT keeps waiting.
   It gives up only when the device has been **silent** for `DBMS_COMMAND_IDLE_SECONDS` (default 180 s).
 - **Safety ceiling** per device: `DBMS_COMMAND_TIMEOUT` (default 3600 s = 1 hour; was 300 s).
@@ -36,7 +36,7 @@ succeeded when started again a little later. Causes:
 | `auth` | login rejected | second pass only once more (an overloaded AAA can reject); then retry queue **once** — never more, so no account lock-out |
 | `permanent` | host key changed, command rejected, no privilege, wrong address, old SSH algorithms | no automatic retry: needs a person; shown in Backup Jobs |
 
-### 3. Second pass inside the same job (business/backups/jobs.py)
+### 3. Second pass inside the same job (business/backups/backup_jobs.py)
 After the run, devices whose failure was `transient` or `auth` are tried **again in the same job**:
 after a cool-down of `DBMS_RETRY_COOLDOWN` seconds (default 60), with at most `DBMS_RETRY_PASS_WORKERS`
 (default 3) parallel sessions and 3 s between logins. A device that succeeds replaces its failed row

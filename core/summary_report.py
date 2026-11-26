@@ -12,14 +12,14 @@ def build_summary(period):
     """Everything the report shows, gathered fresh for the chosen period ("weekly" = last 7 days,
     "monthly" = last 30 days, both ending now)."""
     from data_access.backups import selectors as backups
-    from business.backups import reports
+    from business.backups import change_reports
     from data_access.devices import selectors as devices
     from data_access.radius.selectors import login_summary, recent_logins
 
     days = PERIODS.get(period, 7)
     end = timezone.localtime()
     start = end - timezone.timedelta(days=days)
-    changes = reports.change_report(start=start, end=end)
+    changes = change_reports.change_report(start=start, end=end)
     backup_counts = backups.backup_counts_between(start, end)
     logins = login_summary(since=start, until=end)
     login_rows, _ = recent_logins(since=start, until=end, limit=2000)

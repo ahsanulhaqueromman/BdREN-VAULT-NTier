@@ -1,5 +1,5 @@
 """Accounts - read layer: web users and the sign-in history."""
-from data_access.backups import audit
+from data_access.backups import audit_log
 from core.exceptions import ApiError
 from core.utils import fmt_dt
 
@@ -61,7 +61,7 @@ def online_user_ids():
 def user_row(user, online=None, first=None):
     """User as sent to the browser (never the password), including last sign-in metadata.
     `active` = the account is enabled; `online` = signed in right now; `first` = the protected first account."""
-    last_event = audit.last_signin(user.username)
+    last_event = audit_log.last_signin(user.username)
     online = online_user_ids() if online is None else online
     first = first_user_id() if first is None else first
     return {"id": user.id, "username": user.username, "role": user.role, "active": user.is_active,
@@ -78,11 +78,11 @@ def user_rows():
 
 def signin_history(account="", result="", q="", limit=500):
     """Rows for the Sign-in history table. result = "Signed in" | "Failed" | "Signed out" | ""."""
-    wanted = {v: k for k, v in audit.SIGNIN_ACTIONS.items()}.get(result or "", "")
+    wanted = {v: k for k, v in audit_log.SIGNIN_ACTIONS.items()}.get(result or "", "")
     out = []
-    for e in audit.signin_events(account, wanted, q, limit):
+    for e in audit_log.signin_events(account, wanted, q, limit):
         reason, _, browser = (e.detail or "").partition(" · ")
-        out.append({"ts": fmt_dt(e.ts), "account": e.target or e.username, "result": audit.SIGNIN_ACTIONS[e.action],
+        out.append({"ts": fmt_dt(e.ts), "account": e.target or e.username, "result": audit_log.SIGNIN_ACTIONS[e.action],
                     "reason": reason if e.action == "login.failed" else ("Inactivity" if "inactivity" in reason else ""),
                     "ip": e.remote_addr or "", "browser": browser})
     return out

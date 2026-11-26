@@ -10,7 +10,7 @@ from core.crypto import encrypt
 
 from data_access.devices import selectors
 from database.devices.models import Device
-from data_access.devices.vendors import ALIASES, HOSTRX, VENDORS
+from data_access.devices.vendor_registry import ALIASES, HOSTRX, VENDORS
 
 IPLIKE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 
@@ -37,7 +37,7 @@ def clean_payload(data):
     if out["ip"] and _is_special_use(out["ip"]):
         raise ApiError(400, "This address is loopback or special-use and cannot be backed up")
     if out["command"]:
-        from data_access.backups.engine import command_problem
+        from data_access.backups.ssh_client import command_problem
         if problem := command_problem(out["command"]):
             raise ApiError(400, f"Custom command {problem}")
     out["device_type"] = ALIASES.get(out["device_type"], out["device_type"])
@@ -200,7 +200,7 @@ def queue_initial_backup(devices, started_by):
     Returns (job id or "queued" or None, "started" | "queued" | "not_needed")."""
     if not devices:
         return None, "not_needed"
-    from business.backups.jobs import start_job
+    from business.backups.backup_jobs import start_job
     job = start_job(list(devices), reason="device-added", started_by=started_by)
     return job, "started" if job and job != "queued" else "queued"
 

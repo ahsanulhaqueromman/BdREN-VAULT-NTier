@@ -56,7 +56,7 @@ def start_background():
         return
     _started = True
     # background.py is the composition root of the periodic work: it only starts other apps' services.
-    from business.backups.jobs import close_stale_jobs
+    from business.backups.backup_jobs import close_stale_jobs
     from business.backups.services import run_retention
     from business.commandlog.services import prune_old_events
     from business.monitoring.services import ping_monitor_tick

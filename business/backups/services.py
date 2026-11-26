@@ -17,7 +17,7 @@ from datetime import datetime
 from django.db import transaction
 from django.utils import timezone
 
-from data_access.backups import engine
+from data_access.backups import ssh_client
 from data_access.backups import repositories as storage
 from database.backups.models import BackupLog, Status
 
@@ -150,7 +150,7 @@ def backup_device(device, reason="", preflight=None, abort=None, defer_retryable
 
         if _stopped(abort):
             return _stopped_result(device, label)
-        fetched = engine.fetch_config(device, approved_ip=approved_ip)
+        fetched = ssh_client.fetch_config(device, approved_ip=approved_ip)
         if _stopped(abort):                  # the session answered after Stop backup: discard what it read
             return _stopped_result(device, label)
 
@@ -183,7 +183,7 @@ def backup_device(device, reason="", preflight=None, abort=None, defer_retryable
     except SaveFailed as exc:
         message, kind = str(exc), "transient"
     except Exception as exc:
-        message, kind = engine.explain_failure(exc, device), engine.failure_kind(exc)
+        message, kind = ssh_client.explain_failure(exc, device), ssh_client.failure_kind(exc)
     if defer_retryable and kind in ("transient", "auth"):
         # Not final yet: the job tries this device again; nothing is written to the database now.
         return _result(device, label, Status.FAILED, message=message, failure=kind, deferred=True)
@@ -194,13 +194,13 @@ def backup_device(device, reason="", preflight=None, abort=None, defer_retryable
 
 
 # ---------- operator actions (called by views.py) ----------
-# jobs.py imports this module, so the job runner is imported inside the functions (no import cycle).
+# backup_jobs.py imports this module, so the job runner is imported inside the functions (no import cycle).
 def start_manual_backup(ids, force_ssh, started_by):
     """Start a backup of the selected devices (all when none are selected). Returns (job id, device count).
     Force mode only skips the ping pre-check; SSH host-key and security checks still apply."""
     from data_access.devices import selectors as devices
     from core.exceptions import ApiError
-    from business.backups.jobs import start_job
+    from business.backups.backup_jobs import start_job
     targets = devices.devices_with_ids(ids)
     if not targets:
         raise ApiError(400, "No devices selected")
@@ -213,7 +213,7 @@ def start_manual_backup(ids, force_ssh, started_by):
 def stop_backup():
     """Stop the running backup (devices that have not started are skipped). Returns the job id."""
     from core.exceptions import ApiError
-    from business.backups.jobs import cancel_job
+    from business.backups.backup_jobs import cancel_job
     job_id = cancel_job()
     if not job_id:
         raise ApiError(404, "No backup is running")

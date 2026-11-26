@@ -13,7 +13,7 @@ from django.utils import timezone
 from data_access.backups import selectors as backups
 from core.utils import fmt_dt
 from data_access.devices import selectors as devices
-from data_access.devices.vendors import VENDORS
+from data_access.devices.vendor_registry import VENDORS
 from data_access.scheduling import selectors as scheduling
 
 from data_access.monitoring.cache_keys import LATEST_KEY

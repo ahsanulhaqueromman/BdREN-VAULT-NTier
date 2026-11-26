@@ -1,4 +1,4 @@
-"""`python manage.py syslog_receive`: the syslog receiver for Command History (see business/commandlog/receiver.py).
+"""`python manage.py syslog_receive`: the syslog receiver for Command History (see business/commandlog/syslog_receiver.py).
 
 Production: started by systemd (deploy/systemd/vault-syslog.service), which gives it the right to use port 514
 without running as root. Settings in .env: SYSLOG_HOST (default 0.0.0.0) and SYSLOG_PORT (default 514).
@@ -8,7 +8,7 @@ import signal
 
 from django.core.management.base import BaseCommand, CommandError
 
-from business.commandlog.receiver import Receiver
+from business.commandlog.syslog_receiver import Receiver
 
 
 class Command(BaseCommand):

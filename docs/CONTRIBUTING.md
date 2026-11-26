@@ -48,7 +48,7 @@ one they show "RADIUS database is not reachable", and everything else works.
 | reading the request, the answer, the audit entry | `presentation/<app>/views.py` | |
 | a rule, a validation, anything that changes data | `business/<app>/services.py` | `views.py` |
 | a database query that only reads | `data_access/<app>/selectors.py` | `views.py`, `services.py` |
-| talking to a device, files, the OS, FreeRADIUS | `data_access/<app>/` (`engine.py`, `repositories.py` ...) | `views.py` |
+| talking to a device, files, the OS, FreeRADIUS | `data_access/<app>/` (`ssh_client.py`, `repositories.py` ...) | `views.py` |
 | a table or a column | `database/<app>/models.py` | anywhere else |
 
 `python manage.py check_architecture` tells you at once when something is in the wrong place.
@@ -80,7 +80,7 @@ Error messages are shown to users as notifications: write them as a full sentenc
 
 ## Add a device vendor
 
-One entry in `VENDORS` in `data_access/devices/vendors.py` (login driver and backup command). Optional: a logo in
+One entry in `VENDORS` in `data_access/devices/vendor_registry.py` (login driver and backup command). Optional: a logo in
 `presentation/static/img/vendors/` and its name in `VENDOR_LOGO` in `presentation/static/js/pages/devices.js`.
 
 ## Notifications and texts

@@ -16,7 +16,7 @@ Rules: no database query here (no `.objects.`), no `database.*` import. Use
 ## Example: an operator presses "Backup now"
 
 1. `presentation/backups/views.py` checks the role (`@api(POST="operator")`) and calls the business tier.
-2. `business/backups/jobs.py` starts a background job.
-3. `data_access/backups/engine.py` logs in to the device over SSH and reads the configuration.
+2. `business/backups/backup_jobs.py` starts a background job.
+3. `data_access/backups/ssh_client.py` logs in to the device over SSH and reads the configuration.
 4. `business/backups/services.py` compares it with the last version: changed or unchanged.
 5. `data_access/backups/repositories.py` saves the file; `database/backups/models.py` (BackupLog) records the result.

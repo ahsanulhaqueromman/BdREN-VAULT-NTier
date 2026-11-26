@@ -8,7 +8,7 @@ import csv
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 
-from data_access.backups.audit import record_audit
+from data_access.backups.audit_log import record_audit
 from core.api import ApiError, api
 from core.utils import csv_safe, fmt_dt_ampm, parse_json
 

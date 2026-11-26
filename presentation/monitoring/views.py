@@ -4,7 +4,7 @@ from django.http import JsonResponse
 
 from core.api import api
 
-from business.backups import jobs as backup_jobs
+from business.backups import backup_jobs
 from data_access.monitoring import selectors
 from business.monitoring import services
 

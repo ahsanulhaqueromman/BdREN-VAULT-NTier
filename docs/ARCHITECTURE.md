@@ -41,12 +41,12 @@ tiers **below** it:
      │
      ▼
  business/<app>/        TIER 2  BUSINESS LOGIC  rules and every change: validation, writes, transactions
-   services.py                                  + background work: jobs.py (backup jobs), receiver.py (syslog)
+   services.py                                  + background work: backup_jobs.py (backup jobs), syslog_receiver.py (syslog)
      │
      ▼
  data_access/<app>/     TIER 3  DATA ACCESS     every database read; selectors never change anything
    selectors.py                                 + repositories.py (backup files, the radius database),
-   repositories.py                                engine.py (SSH), parsers.py (syslog formats), audit.py
+   repositories.py                                ssh_client.py (SSH), syslog_parsers.py (syslog formats), audit_log.py
      │
      ▼
  database/<app>/        TIER 4  DATABASE        tables and fields only
@@ -56,8 +56,8 @@ tiers **below** it:
 | Tier | Folder | Files | Main job |
 |---|---|---|---|
 | 1 Presentation | `presentation/<app>/` | `views.py`, `urls.py`, `serializers.py` (+ `presentation/templates/`, `presentation/static/`) | Receive the request, send the response; passwords never leave the server |
-| 2 Business logic | `business/<app>/` | `services.py` (+ `jobs.py`, `reports.py`, `receiver.py`) | The rules and every change (add a device, start a backup, lock a user ...) |
-| 3 Data access | `data_access/<app>/` | `selectors.py`, `repositories.py` (+ `engine.py`, `audit.py`, `parsers.py`, `vendors.py`, `cache_keys.py`) | Every read; backup files on disk; the FreeRADIUS database; SSH to devices |
+| 2 Business logic | `business/<app>/` | `services.py` (+ `backup_jobs.py`, `change_reports.py`, `syslog_receiver.py`) | The rules and every change (add a device, start a backup, lock a user ...) |
+| 3 Data access | `data_access/<app>/` | `selectors.py`, `repositories.py` (+ `ssh_client.py`, `audit_log.py`, `syslog_parsers.py`, `vendor_registry.py`, `cache_keys.py`) | Every read; backup files on disk; the FreeRADIUS database; SSH to devices |
 | 4 Database | `database/<app>/` | `models.py`, `migrations/`, `apps.py`, `admin.py` | The tables and their fields |
 
 One feature is always found the same way: `presentation/devices/views.py` → `business/devices/services.py`
@@ -67,11 +67,11 @@ One feature is always found the same way: `presentation/devices/views.py` → `b
 |---|---|---|---|---|
 | `accounts` | sign-in pages, `/api/me`, `/api/users` | password rules, lockout, user changes | users, sign-in history | |
 | `devices` | `/api/devices`, `/api/credentials` | validation, add / edit / delete, saved logins | inventory, saved login profiles | |
-| `backups` | `/api/backup`, `/api/jobs`, `/api/logs`, `/api/backups` | back up one device, start / stop jobs, delete versions, log housekeeping | jobs, logs, versions, reports, alerts | `engine.py`, `repositories.py`, `audit.py` (data_access); `jobs.py`, `reports.py` (business) |
+| `backups` | `/api/backup`, `/api/jobs`, `/api/logs`, `/api/backups` | back up one device, start / stop jobs, delete versions, log housekeeping | jobs, logs, versions, reports, alerts | `ssh_client.py`, `repositories.py`, `audit_log.py` (data_access); `backup_jobs.py`, `change_reports.py` (business) |
 | `monitoring` | `/api/ping`, `/api/dashboard` | ping, background monitor | Dashboard numbers, server health | OS `ping` |
 | `scheduling` | `/api/settings` | settings, the backup timer | stored settings, retry queue, next run | |
 | `radius` | `/api/radius/*` | RADIUS users, levels, NAS, FreeRADIUS restart, password hashing, NAS names from syslog | users, NAS, logins, limit violations | `repositories.py` (second database, data_access) |
-| `commandlog` | `/api/radius/commands*` | save what the receiver hands over, dismiss a warning, clean-up | sessions, devices sending logs, receiver state, From for Authentication Audit | `receiver.py` (UDP 514, business), `parsers.py` (vendor formats, data_access) |
+| `commandlog` | `/api/radius/commands*` | save what the receiver hands over, dismiss a warning, clean-up | sessions, devices sending logs, receiver state, From for Authentication Audit | `syslog_receiver.py` (UDP 514, business), `syslog_parsers.py` (vendor formats, data_access) |
 | `core` | pages, `/healthz`, `api.py`, `middleware.py` | | | `exceptions.py`, `netguard.py`, `background.py`; persistence: `crypto.py`, `keys.py` |
 
 **Between apps** the same tier rule applies: the Dashboard (`data_access/monitoring/selectors.py`) reads
@@ -154,10 +154,10 @@ responsive) and `presentation/static/css/auth.css` for the sign-in page.
 
 ## Backups
 
-`business/backups/jobs.py` runs one job at a time: ping every device in parallel, then up to N SSH sessions
+`business/backups/backup_jobs.py` runs one job at a time: ping every device in parallel, then up to N SSH sessions
 (Settings → Performance). For each device `business/backups/services.py`:
 
-1. reads the configuration over SSH (`engine.py`, vendor command from `data_access/devices/vendors.py`)
+1. reads the configuration over SSH (`ssh_client.py`, vendor command from `data_access/devices/vendor_registry.py`)
 2. compares it with the latest saved version, ignoring lines that change on every read (clock, timestamps)
 3. unchanged → records the check only; changed → writes a hidden `.part` file, then renames it **inside the same
    database transaction** that records the result (`data_access/backups/repositories.py`), then writes a SHA-256 checksum
@@ -194,7 +194,7 @@ panel. `deploy/radius/check_levels.sh` verifies the whole chain on a server.
 ## Session Log
 
 ```
- device ──syslog──> receiver.py ──parsers.py──> CommandEvent (dbms)     logins, commands, changes
+ device ──syslog──> syslog_receiver.py ──syslog_parsers.py──> CommandEvent (dbms)     logins, commands, changes
                          │                       SyslogSource            per sender: counts, host name
                          └─ heartbeat ────────> ReceiverState           running, ignored / dropped counts
  FreeRADIUS ──────────────────────────────────> radpostauth / radacct   RADIUS logins and logouts

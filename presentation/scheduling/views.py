@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 
-from data_access.backups.audit import record_audit
+from data_access.backups.audit_log import record_audit
 from core.api import api
 from core.utils import parse_json
 
@@ -16,7 +16,7 @@ def settings_view(request):
         services.save_settings(data)
         record_audit(request, "settings.update", "scheduler settings", ", ".join(sorted(str(k) for k in data)[:20]))
         return JsonResponse({"ok": True})
-    from business.backups.jobs import job_running
+    from business.backups.backup_jobs import job_running
     values = selectors.all_settings()
     values.update(sched_last_text=selectors.last_run_text(values),
                   next_run=selectors.next_scheduled_run(values), running=job_running())

@@ -15,7 +15,7 @@ from business.scheduling.services import put_settings, update_retry_queue
 from data_access.scheduling.selectors import get_id_list, get_setting
 from core.netguard import resolve_allowed_host
 
-from data_access.backups import engine
+from data_access.backups import ssh_client
 from database.backups.models import BackupJob
 from data_access.backups.selectors import PHASE_KEY as _PHASE_KEY, summarize
 from business.backups.services import STOPPED_MESSAGE, backup_device, finalize_failure
@@ -363,7 +363,7 @@ def _second_pass(job_id, results, devices, reason, workers, ping_workers, force,
         if tried[0] % flush_every == 0 or tried[0] == n:
             _update_job(job_id, done=len(results), results=list(results))
 
-    with engine.LOGIN_PACER.spacing(3.0):
+    with ssh_client.LOGIN_PACER.spacing(3.0):
         return _run_pass(job_id, batch, reason, max(1, min(int(settings.RETRY_PASS_WORKERS), workers)),
                          ping_workers, force, replace, stall_limit, abort)
 

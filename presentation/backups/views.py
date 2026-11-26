@@ -1,7 +1,7 @@
 """Backups - HTTP layer: /api/backup, /api/jobs, /api/logs, /api/backups, /api/diff and the reports.
 
 Views read the request, call selectors (reads) or services (changes), record the audit entry and answer.
-Database queries, file handling and rules live in the lower tiers: data_access (selectors.py, repositories.py) and business (services.py, reports.py).
+Database queries, file handling and rules live in the lower tiers: data_access (selectors.py, repositories.py) and business (services.py, change_reports.py).
 """
 import csv
 import logging
@@ -14,11 +14,11 @@ from core.api import ApiError, api
 from core.utils import csv_safe, fmt_dt, fmt_dt_ampm, parse_json
 from data_access.radius import selectors as radius
 
-from data_access.backups import audit
-from business.backups import jobs
+from data_access.backups import audit_log
+from business.backups import backup_jobs
 from data_access.backups import selectors
 from business.backups import services
-from data_access.backups.audit import record_audit
+from data_access.backups.audit_log import record_audit
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def start_backup(request):
 @api(GET="viewer")
 def job_active(request):
     """The backup that is running right now (started by anyone, or by the schedule); job is null when idle."""
-    return JsonResponse(jobs.running_job())
+    return JsonResponse(backup_jobs.running_job())
 
 
 @api(POST="operator")
@@ -94,7 +94,7 @@ def audit_events(request):
     recorded."""
     limit = _limit(request, 200, 1000)
     rows = [{"when": r.ts, "id": f"p{r.id}", "username": r.username, "action": r.action, "target": r.target,
-             "detail": r.detail, "remote_addr": r.remote_addr, "area": "Panel"} for r in audit.recent_events(limit)]
+             "detail": r.detail, "remote_addr": r.remote_addr, "area": "Panel"} for r in audit_log.recent_events(limit)]
     try:
         rows += [{"when": r.created_at, "id": f"r{r.id}", "username": r.actor, "action": "radius." + r.action,
                   "target": r.target, "detail": r.detail, "remote_addr": r.ip, "area": "RADIUS"}
@@ -220,8 +220,8 @@ def download_all(request):
 # ---------- reports ----------
 @api(GET="viewer")
 def change_report(request):
-    """What changed on every device in the last ?months=1|3|6|12, or ?from=YYYY-MM&to=YYYY-MM (see reports.py)."""
-    from business.backups.reports import PERIODS, change_report as report, month_range
+    """What changed on every device in the last ?months=1|3|6|12, or ?from=YYYY-MM&to=YYYY-MM (see change_reports.py)."""
+    from business.backups.change_reports import PERIODS, change_report as report, month_range
 
     def build(*args, **kwargs):
         """Viewers may not read configurations (the Backups screen needs Operator), so they get the counts

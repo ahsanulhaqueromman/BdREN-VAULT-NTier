@@ -24,7 +24,7 @@ from netmiko.cisco.cisco_ios import CiscoIosSSH
 from netmiko.exceptions import NetmikoAuthenticationException, NetmikoTimeoutException, ReadTimeout
 
 from core.netguard import resolve_allowed_host
-from data_access.devices.vendors import ALIASES, get_vendor
+from data_access.devices.vendor_registry import ALIASES, get_vendor
 
 logger = logging.getLogger("dbms")
 

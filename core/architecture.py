@@ -5,9 +5,9 @@ A tier may only use the tiers BELOW it (or files of its own tier):
 
     1  presentation/<app>/   views.py, urls.py, serializers.py   + presentation/templates, presentation/static
                              receive the request, call business / data access, send the response
-    2  business/<app>/       services.py, jobs.py, receiver.py, reports.py
+    2  business/<app>/       services.py, backup_jobs.py, syslog_receiver.py, change_reports.py
                              rules and every change (validation, writes, transactions, background work)
-    3  data_access/<app>/    selectors.py, repositories.py, audit.py, engine.py, parsers.py, vendors.py ...
+    3  data_access/<app>/    selectors.py, repositories.py, audit_log.py, ssh_client.py, syslog_parsers.py, vendor_registry.py ...
                              every database read, stores that are not ordinary tables, the outside world (SSH, syslog)
     4  database/<app>/       models.py, migrations/, apps.py, admin.py
                              tables and fields only

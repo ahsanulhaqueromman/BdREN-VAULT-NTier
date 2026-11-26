@@ -6,7 +6,7 @@ server never needs the privileged port. Rules:
   * only addresses on NAS Clients (single addresses or networks) are accepted;
     every other message is counted as "rejected" and thrown away unread
   * at most RATE_PER_SECOND messages per device per second (a device in a log storm cannot fill the database)
-  * messages are parsed in memory (parsers.py) and written in batches every FLUSH_SECONDS
+  * messages are parsed in memory (syslog_parsers.py) and written in batches every FLUSH_SECONDS
   * only user actions are stored; other messages (link up/down, routing ...) are only counted per device
 """
 import ipaddress
@@ -19,7 +19,7 @@ from django.db import Error as DatabaseError
 from django.db import connections
 from django.utils import timezone
 
-from data_access.commandlog import parsers
+from data_access.commandlog import syslog_parsers
 from data_access.commandlog import selectors
 from business.commandlog import services
 
@@ -105,8 +105,8 @@ class Receiver:
         stat = self.stats.setdefault(ip, {"received": 0, "recognized": 0, "sample": ""})
         stat["received"] += 1
         if not stat.get("hostname"):
-            stat["hostname"] = parsers.hostname(data[:MAX_DATAGRAM])
-        event = parsers.parse(data[:MAX_DATAGRAM], vendor)
+            stat["hostname"] = syslog_parsers.hostname(data[:MAX_DATAGRAM])
+        event = syslog_parsers.parse(data[:MAX_DATAGRAM], vendor)
         if event:
             stat["recognized"] += 1
             if self.is_repeat(ip, event):
