@@ -39,7 +39,7 @@ def _run_forever(name, func, interval, first_delay):
 def _warm_backup_index():
     """Read every device's backup folder once, right after start, so the first visit to the Backups page
     does not wait for it (20,000 device folders take a while to list)."""
-    from apps.backups.services import warm_backup_index
+    from business.backups.services import warm_backup_index
     try:
         time.sleep(5)
         warm_backup_index()
@@ -56,12 +56,12 @@ def start_background():
         return
     _started = True
     # background.py is the composition root of the periodic work: it only starts other apps' services.
-    from apps.backups.jobs import close_stale_jobs
-    from apps.backups.services import run_retention
-    from apps.commandlog.services import prune_old_events
-    from apps.monitoring.services import ping_monitor_tick
-    from apps.radius.services import prune_old_logins
-    from apps.scheduling.services import scheduler_tick
+    from business.backups.jobs import close_stale_jobs
+    from business.backups.services import run_retention
+    from business.commandlog.services import prune_old_events
+    from business.monitoring.services import ping_monitor_tick
+    from business.radius.services import prune_old_logins
+    from business.scheduling.services import scheduler_tick
 
     close_stale_jobs()
     threading.Thread(target=_warm_backup_index, name="backup-index", daemon=True).start()

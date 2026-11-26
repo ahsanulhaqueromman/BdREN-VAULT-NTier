@@ -29,53 +29,54 @@ How the VAULT is put together. For "which file does what", see
 
 ## Layered architecture (server)
 
-Every business area is one app in `apps/`, and every app has one file per layer. A file may only use the
-layers **below** it:
+The code is split into four tiers, one top-level folder each. Inside every tier there is one folder per app
+(`accounts`, `devices`, `backups`, `scheduling`, `monitoring`, `radius`, `commandlog`). A tier may only use the
+tiers **below** it:
 
 ```
- views.py, urls.py   PRESENTATION    read the request → call a service / selector → answer (JSON / page)
- serializers.py                      object → JSON (passwords never leave the server)
-     │                               + record the audit entry (it needs the request: user and IP)
-     ▼
- services.py         BUSINESS LOGIC  rules and every change: validation, writes, transactions
- jobs.py, receiver.py                background work: backup jobs, the syslog receiver
+ presentation/<app>/    TIER 1  PRESENTATION    read the request → call business / data access → answer (JSON / page)
+   views.py urls.py                             + record the audit entry (it needs the request: user and IP)
+   serializers.py                               object → JSON (passwords never leave the server)
+   templates/ static/                           HTML, CSS, JavaScript
      │
      ▼
- selectors.py        DATA ACCESS     every database read; never changes anything
- repositories.py                     backup files on disk, the second (radius) database
- engine.py, parsers.py               SSH to devices, vendor syslog formats
+ business/<app>/        TIER 2  BUSINESS LOGIC  rules and every change: validation, writes, transactions
+   services.py                                  + background work: jobs.py (backup jobs), receiver.py (syslog)
      │
      ▼
- models.py           DATABASE        tables and fields only
+ data_access/<app>/     TIER 3  DATA ACCESS     every database read; selectors never change anything
+   selectors.py                                 + repositories.py (backup files, the radius database),
+   repositories.py                                engine.py (SSH), parsers.py (syslog formats), audit.py
+     │
+     ▼
+ database/<app>/        TIER 4  DATABASE        tables and fields only
+   models.py migrations/
 ```
 
-| Layer | File | Main job |
-|---|---|---|
-| Presentation | `views.py` (+ `urls.py`) | Receive the client's request and send the response |
-| Presentation | `serializers.py` | Turn objects into JSON (passwords never leave the server) |
-| Business logic | `services.py` | The rules and every change (add a device, start a backup, lock a user ...) |
-| Data access | `repositories.py` | Stores that are not ordinary tables: backup files on disk, the FreeRADIUS database |
-| Data access | `selectors.py` | Every database read and filter; never changes anything |
-| Database | `models.py` | The tables and their fields |
+| Tier | Folder | Files | Main job |
+|---|---|---|---|
+| 1 Presentation | `presentation/<app>/` | `views.py`, `urls.py`, `serializers.py` (+ `presentation/templates/`, `presentation/static/`) | Receive the request, send the response; passwords never leave the server |
+| 2 Business logic | `business/<app>/` | `services.py` (+ `jobs.py`, `reports.py`, `receiver.py`) | The rules and every change (add a device, start a backup, lock a user ...) |
+| 3 Data access | `data_access/<app>/` | `selectors.py`, `repositories.py` (+ `engine.py`, `audit.py`, `parsers.py`, `vendors.py`, `cache_keys.py`) | Every read; backup files on disk; the FreeRADIUS database; SSH to devices |
+| 4 Database | `database/<app>/` | `models.py`, `migrations/`, `apps.py`, `admin.py` | The tables and their fields |
 
-One feature is always found the same way: `apps/devices/views.py` → `apps/devices/services.py`
-→ `apps/devices/selectors.py` → `apps/devices/models.py`. How to read an app: [apps/README.md](../apps/README.md).
+One feature is always found the same way: `presentation/devices/views.py` → `business/devices/services.py`
+→ `data_access/devices/selectors.py` → `database/devices/models.py`. Each tier folder has its own README.
 
-| App | views.py | services.py | selectors.py | other files |
+| App | presentation: views.py | business: services.py | data_access: selectors.py | other files |
 |---|---|---|---|---|
 | `accounts` | sign-in pages, `/api/me`, `/api/users` | password rules, lockout, user changes | users, sign-in history | |
 | `devices` | `/api/devices`, `/api/credentials` | validation, add / edit / delete, saved logins | inventory, saved login profiles | |
-| `backups` | `/api/backup`, `/api/jobs`, `/api/logs`, `/api/backups` | back up one device, start / stop jobs, delete versions, log housekeeping | jobs, logs, versions, reports, alerts | `engine.py`, `storage.py`, `jobs.py`, `reports.py`, `audit.py` |
+| `backups` | `/api/backup`, `/api/jobs`, `/api/logs`, `/api/backups` | back up one device, start / stop jobs, delete versions, log housekeeping | jobs, logs, versions, reports, alerts | `engine.py`, `repositories.py`, `audit.py` (data_access); `jobs.py`, `reports.py` (business) |
 | `monitoring` | `/api/ping`, `/api/dashboard` | ping, background monitor | Dashboard numbers, server health | OS `ping` |
-| `scheduling` | `/api/settings` | settings, the backup timer | | |
-| `radius` | `/api/radius/*` | RADIUS users, levels, NAS, FreeRADIUS restart, password hashing, NAS names from syslog | users, NAS, logins, limit violations | `router.py` (second database) |
-| `commandlog` | `/api/radius/commands*` | save what the receiver hands over, dismiss a warning, clean-up | sessions, devices sending logs, receiver state, From for Authentication Audit | `receiver.py` (UDP 514), `parsers.py` (vendor formats) |
-| `core` | pages, `/healthz`, `api.py`, `middleware.py` | | | `errors.py`, `netguard.py`, `background.py`; persistence: `crypto.py`, `keys.py` |
+| `scheduling` | `/api/settings` | settings, the backup timer | stored settings, retry queue, next run | |
+| `radius` | `/api/radius/*` | RADIUS users, levels, NAS, FreeRADIUS restart, password hashing, NAS names from syslog | users, NAS, logins, limit violations | `repositories.py` (second database, data_access) |
+| `commandlog` | `/api/radius/commands*` | save what the receiver hands over, dismiss a warning, clean-up | sessions, devices sending logs, receiver state, From for Authentication Audit | `receiver.py` (UDP 514, business), `parsers.py` (vendor formats, data_access) |
+| `core` | pages, `/healthz`, `api.py`, `middleware.py` | | | `exceptions.py`, `netguard.py`, `background.py`; persistence: `crypto.py`, `keys.py` |
 
-**Between apps** only the public parts are used: another app's `selectors`, `services` (and `audit`,
-`vendors`, `jobs`, `engine`). Example: the Dashboard reads backup numbers with
-`apps.backups.selectors.results_per_day()`, never `BackupLog.objects`. `core/` is the shared kernel
-every app may use; `core/background.py` is the composition root that starts the periodic services.
+**Between apps** the same tier rule applies: the Dashboard (`data_access/monitoring/selectors.py`) reads
+backup numbers with `data_access.backups.selectors.results_per_day()`; the presentation tier never touches
+`BackupLog.objects`. `core/` is the shared kernel every tier may use (but core never uses presentation); `core/background.py` is the composition root that starts the periodic services.
 Maintenance commands (`core/management/commands/`) may use any app's models directly, like migrations.
 
 **The rules are checked by a command**, so they cannot drift:
@@ -108,14 +109,14 @@ Every screen is its own page. The list lives in one place, **`core/pages.py`**:
 | `settings` | `/settings` | `settings/index.html` | Administrator |
 
 The registry drives the URL table (`config/urls.py`), the side menu, the breadcrumb, the browser-tab title and
-access. A role below the page's role gets `templates/errors/forbidden.html` (HTTP 403). `/` opens the Dashboard;
+access. A role below the page's role gets `presentation/templates/errors/forbidden.html` (HTTP 403). `/` opens the Dashboard;
 after signing in the user returns to the page they asked for (`/login?next=/devices`).
 
 ### Request flow of a page
 
 1. `core/views.py: page_view()` looks the key up in the registry and renders the page's template.
 2. Every page template does `{% extends "base.html" %}` and fills `{% block content %}`.
-3. `templates/base.html` draws the side menu (for this role), top bar, shared pop-ups, and sets
+3. `presentation/templates/base.html` draws the side menu (for this role), top bar, shared pop-ups, and sets
    `<body data-page="devices" class="r-admin">`.
 4. The browser loads the scripts (below); `core/start.js` calls the page's loader, which fetches its data
    from the JSON API and draws it.
@@ -126,7 +127,7 @@ All scripts load on every page, in a fixed order, and share one global scope: on
 and a function from an earlier file can be used directly.
 
 ```
-static/js/core/    shared by every page
+presentation/static/js/core/    shared by every page
   early.js          side-menu state before the page is drawn
   helpers.js        $, $o, esc, toast, api(), dates, confirm pop-up, pager, PAGE / showTab / openDevice
   menu.js           menu button (minimise on a computer, drawer on a phone), RADIUS drop-down, account menu
@@ -135,8 +136,8 @@ static/js/core/    shared by every page
   search.js         global search (Ctrl+K)
   start.js          PAGE_INIT: runs the open page's loader; idle sign-out
   responsive.js     tables become cards on phones
-static/js/pages/   one file per screen (dashboard, devices, backups, reports, jobs, logs, users, settings, radius)
-static/js/pages/auth.js   sign-in page only
+presentation/static/js/pages/   one file per screen (dashboard, devices, backups, reports, jobs, logs, users, settings, radius)
+presentation/static/js/pages/auth.js   sign-in page only
 ```
 
 Rules that keep this safe:
@@ -148,18 +149,18 @@ Rules that keep this safe:
 - **Navigation is plain links.** `showTab("devices")` and `openDevice(id)` change `location`; links saved from the
   old one-page version (`/#devices`, `/#device/12`) are redirected by `start.js`.
 
-Styles: `static/css/app.css` for the application (sections: tokens, base, shell, components, pages, motion,
-responsive) and `static/css/auth.css` for the sign-in page.
+Styles: `presentation/static/css/app.css` for the application (sections: tokens, base, shell, components, pages, motion,
+responsive) and `presentation/static/css/auth.css` for the sign-in page.
 
 ## Backups
 
-`apps/backups/jobs.py` runs one job at a time: ping every device in parallel, then up to N SSH sessions
-(Settings → Performance). For each device `apps/backups/services.py`:
+`business/backups/jobs.py` runs one job at a time: ping every device in parallel, then up to N SSH sessions
+(Settings → Performance). For each device `business/backups/services.py`:
 
-1. reads the configuration over SSH (`engine.py`, vendor command from `apps/devices/vendors.py`)
+1. reads the configuration over SSH (`engine.py`, vendor command from `data_access/devices/vendors.py`)
 2. compares it with the latest saved version, ignoring lines that change on every read (clock, timestamps)
 3. unchanged → records the check only; changed → writes a hidden `.part` file, then renames it **inside the same
-   database transaction** that records the result (`storage.py`), then writes a SHA-256 checksum
+   database transaction** that records the result (`data_access/backups/repositories.py`), then writes a SHA-256 checksum
 
 A failure or Stop at any point leaves no partial file and does not change the last good backup.
 

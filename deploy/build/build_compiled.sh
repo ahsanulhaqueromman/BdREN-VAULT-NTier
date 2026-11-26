@@ -2,10 +2,10 @@
 # =====================================================================================================
 #  Build a SOURCE-HIDDEN distribution of VAULT (for giving the app to others to RUN without the code).
 #
-#  Every .py under apps/, core/ and config/ (except __init__.py and migrations/) is compiled to a native
+#  Every .py under presentation/, business/, data_access/, database/, core/ and config/ (except __init__.py and migrations/) is compiled to a native
 #  .so with Cython, then the .py sources are removed from the OUTPUT copy. What stays, because Django
 #  needs it or it is visible anyway:
-#      - templates/ (HTML), static/ (CSS, JS)     <- always readable in the browser
+#      - presentation/templates/ (HTML), presentation/static/ (CSS, JS)   <- always readable in the browser
 #      - */migrations/                            <- Django imports these as modules
 #      - manage.py, __init__.py, .env.example
 #
@@ -54,7 +54,8 @@ import glob
 from setuptools import setup
 from Cython.Build import cythonize
 
-files = [f for f in glob.glob("apps/**/*.py", recursive=True) + glob.glob("core/**/*.py", recursive=True) + glob.glob("config/**/*.py", recursive=True)
+files = [f for top in ("presentation", "business", "data_access", "database", "core", "config")
+         for f in glob.glob(top + "/**/*.py", recursive=True)
          if not f.endswith("__init__.py") and "/migrations/" not in f]
 if not files:
     raise SystemExit("No .py files found to compile - is this the project root?")
@@ -68,13 +69,13 @@ print("Compiled %d modules." % len(files))
 PY
 
 echo "Removing the .py sources that were compiled (keeping __init__.py, migrations, manage.py)..."
-find apps config -name '*.py' ! -name '__init__.py' ! -path '*/migrations/*' -delete
-find apps config -name '*.c' -delete
+find presentation business data_access database core config -name '*.py' ! -name '__init__.py' ! -path '*/migrations/*' -delete
+find presentation business data_access database core config -name '*.c' -delete
 find . -type d -name '__pycache__' -prune -exec rm -rf {} + 2>/dev/null || true
 
 echo
 echo "Done. Source-hidden build is in: $OUT"
-echo "  - the Python logic is now .so binaries under apps/, core/ and config/ (no readable .py)"
+echo "  - the Python logic is now .so binaries under the four tier folders, core/ and config/ (no readable .py)"
 echo "  - templates, static files, migrations and manage.py are kept (unavoidable)"
 echo
 echo "TEST it before shipping:"

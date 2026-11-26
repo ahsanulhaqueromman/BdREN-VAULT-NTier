@@ -105,12 +105,12 @@ Then hard-refresh the site once: **Ctrl+F5**.
 
 ### Code-only update (without running install.sh)
 
-If you only changed templates/static/python and don't want the full installer:
+If you only changed templates, static files or Python code and don't want the full installer:
 
 ```bash
 cd ~/BdREN-VAULT && git pull
-sudo cp -r templates static apps config /opt/vault/
-sudo chown -R vault:vault /opt/vault/templates /opt/vault/static /opt/vault/apps /opt/vault/config
+sudo cp -r presentation business data_access database core config /opt/vault/
+sudo chown -R vault:vault /opt/vault/presentation /opt/vault/business /opt/vault/data_access /opt/vault/database /opt/vault/core /opt/vault/config
 sudo systemctl restart vault
 ```
 

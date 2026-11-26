@@ -5,7 +5,7 @@ from core.architecture import check
 
 
 class Command(BaseCommand):
-    help = "Check the tier rules of every app (api -> services -> selectors -> models)."
+    help = "Check the tier rules of every app (presentation -> business -> data_access -> database)."
 
     def handle(self, *args, **options):
         problems = check()

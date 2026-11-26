@@ -4,7 +4,7 @@ Packs the project folder as vault/... with forward-slash paths (Linux unzip frie
 is created at run time or must never ship:
   - top-level runtime folders: data/, logs/ (an empty logs/README.md is kept), staticfiles/, .venv/, venv/
   - anywhere: __pycache__/, *.pyc, tests.py, .env
-Folders with the same name deeper in the project (templates/logs/, for example) ARE included.
+Folders with the same name deeper in the project (presentation/templates/logs/, for example) ARE included.
 Then checks that every template, static file, Python module and deploy script of the project is in the zip.
 """
 import sys
@@ -45,7 +45,7 @@ def build(out):
         sys.exit(f"Release check FAILED. Writable by other accounts: {loose[:10]}")
     # every source file that matters must be inside
     must = [p for p in ROOT.rglob("*") if p.is_file() and p.relative_to(ROOT).parts[0] in
-            ("apps", "core", "config", "templates", "static", "deploy", "docs") and wanted(p.relative_to(ROOT))]
+            ("presentation", "business", "data_access", "database", "core", "config", "deploy", "docs") and wanted(p.relative_to(ROOT))]
     missing = [p.relative_to(ROOT).as_posix() for p in must if "vault/" + p.relative_to(ROOT).as_posix() not in names]
     leaked = [n for n in names if n.endswith((".env", ".pyc", "/tests.py")) or "/data/" in n]
     if missing or leaked:

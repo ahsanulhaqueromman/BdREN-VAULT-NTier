@@ -5,7 +5,7 @@ holds its content and the minimum role that may open it. Adding a page:
 
   1. add a Page(...) below
   2. create its template: {% extends "base.html" %} {% block content %} ... {% endblock %}
-  3. add its loader to PAGE_INIT in static/js/core/start.js (the function that fills the page with data)
+  3. add its loader to PAGE_INIT in presentation/static/js/core/start.js (the function that fills the page with data)
 
 The JSON API keeps its own role checks (core/api.py); the role here only decides who sees the menu item
 and who may open the page.
@@ -20,7 +20,7 @@ class Page:
     title: str          # menu label, browser tab title and breadcrumb
     group: str          # menu section heading and first breadcrumb part
     template: str       # template that extends base.html
-    icon: str           # templates/components/icons/<icon>.svg
+    icon: str           # presentation/templates/components/icons/<icon>.svg
     role: str = "viewer"   # viewer < operator < admin
     submenu: str = ""   # pages with the same submenu are shown in one drop-down (RADIUS / AAA)
 

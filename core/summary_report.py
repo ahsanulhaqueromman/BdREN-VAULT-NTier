@@ -11,10 +11,10 @@ PERIODS = {"weekly": 7, "monthly": 30}   # label -> days back from now
 def build_summary(period):
     """Everything the report shows, gathered fresh for the chosen period ("weekly" = last 7 days,
     "monthly" = last 30 days, both ending now)."""
-    from apps.backups import selectors as backups
-    from apps.backups import reports
-    from apps.devices import selectors as devices
-    from apps.radius.selectors import login_summary, recent_logins
+    from data_access.backups import selectors as backups
+    from business.backups import reports
+    from data_access.devices import selectors as devices
+    from data_access.radius.selectors import login_summary, recent_logins
 
     days = PERIODS.get(period, 7)
     end = timezone.localtime()
@@ -42,7 +42,7 @@ def build_summary(period):
     }
 
 
-# The app's own palette (static/css/app.css :root), so the PDF matches the product instead of looking bolted on.
+# The app's own palette (presentation/static/css/app.css :root), so the PDF matches the product instead of looking bolted on.
 _INK, _MUTE, _LINE = "#0f1b2d", "#5b6b82", "#e2e8f1"
 _BLUE, _BLUE_D = "#2f5bea", "#2449c7"
 _OK, _OK_BG = "#0a7a54", "#e2f6ee"

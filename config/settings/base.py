@@ -95,13 +95,13 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # project apps (one folder per responsibility, see README)
     "core",                 # shared kernel: pages, API helpers, background tasks, manage.py commands
-    "apps.accounts",
-    "apps.devices",
-    "apps.backups",
-    "apps.scheduling",
-    "apps.monitoring",
-    "apps.radius",          # RADIUS Admin: FreeRADIUS users, devices (NAS) and audit
-    "apps.commandlog",      # Command History: who ran which command on a device (device syslog)
+    "database.accounts",
+    "database.devices",
+    "database.backups",
+    "database.scheduling",
+    "database.monitoring",
+    "database.radius",          # RADIUS Admin: FreeRADIUS users, devices (NAS) and audit
+    "database.commandlog",      # Command History: who ran which command on a device (device syslog)
 ]
 
 MIDDLEWARE = [
@@ -121,7 +121,7 @@ MIDDLEWARE = [
 
 TEMPLATES = [{
     "BACKEND": "django.template.backends.django.DjangoTemplates",
-    "DIRS": [BASE_DIR / "templates"],
+    "DIRS": [BASE_DIR / "presentation" / "templates"],
     "APP_DIRS": True,
     "OPTIONS": {"context_processors": [
         "django.template.context_processors.request",
@@ -156,7 +156,7 @@ if not DATABASES["default"]["PASSWORD"]:
     sys.exit("DBMS_DB_PASSWORD is not set. Add it to the .env file.")
 
 # ---------- RADIUS Admin: second database, shared with FreeRADIUS ----------
-# The rad* and nas tables come from the FreeRADIUS schema.sql; apps/radius/repositories.py sends the
+# The rad* and nas tables come from the FreeRADIUS schema.sql; data_access/radius/repositories.py sends the
 # RADIUS pages to this database and keeps every other table in "default".
 DATABASES["radius"] = {
     "ENGINE": "django.db.backends.mysql",
@@ -168,7 +168,7 @@ DATABASES["radius"] = {
     "CONN_MAX_AGE": 60,
     "OPTIONS": {"charset": "utf8mb4"},
 }
-DATABASE_ROUTERS = ["apps.radius.repositories.RadiusRouter"]
+DATABASE_ROUTERS = ["data_access.radius.repositories.RadiusRouter"]
 # FreeRADIUS reads the nas table only at start, so it is restarted after a device is added or removed.
 RADIUS_RELOAD_CMD = os.environ.get("RADIUS_RELOAD_CMD", "sudo -n /usr/bin/systemctl restart freeradius")
 # 1 = FreeRADIUS looks new switches up in the nas table on their first request (deploy/radius/
@@ -177,7 +177,7 @@ RADIUS_DYNAMIC_CLIENTS = env_flag("RADIUS_DYNAMIC_CLIENTS")
 # Keeps UDP 1812/1813 open in ufw only for the devices on NAS Clients, run after a device is added or
 # removed. Set by deploy/radius/enable_firewall_sync.sh (sudo -n /usr/local/sbin/vault-radius-firewall); empty = off
 RADIUS_FIREWALL_CMD = os.environ.get("RADIUS_FIREWALL_CMD", "").strip()
-# RADIUS user passwords are always stored as salted SHA-256 (apps/radius/services.py hash_password); the old
+# RADIUS user passwords are always stored as salted SHA-256 (business/radius/services.py hash_password); the old
 # RADIUS_PASSWORD_MODE setting is no longer read.
 
 # ---------- users and sessions ----------
@@ -227,12 +227,12 @@ USE_TZ = True
 
 # ---------- static files ----------
 STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [BASE_DIR / "presentation" / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_ROOT.mkdir(exist_ok=True)
-WHITENOISE_USE_FINDERS = True                 # serve straight from static/ - collectstatic is optional
+WHITENOISE_USE_FINDERS = True                 # serve straight from presentation/static/ - collectstatic is optional
 WHITENOISE_AUTOREFRESH = DEBUG
-# Every CSS / JS address carries ?v=<number> (templates/base.html) that changes with each release, so a
+# Every CSS / JS address carries ?v=<number> (presentation/templates/base.html) that changes with each release, so a
 # browser may keep a file for a year. The default (60 s) made every page change ask about all 17 files again.
 WHITENOISE_MAX_AGE = 0 if DEBUG else 365 * 24 * 60 * 60
 STORAGES = {

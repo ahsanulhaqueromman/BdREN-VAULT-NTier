@@ -1,6 +1,6 @@
 """Pages that belong to no single app: every screen of the web application, health check, robots.txt, CSRF error.
 
-Each screen is its own URL (see core/pages.py). They all render templates/base.html (side menu, top bar,
+Each screen is its own URL (see core/pages.py). They all render presentation/templates/base.html (side menu, top bar,
 shared pop-ups and scripts) with the screen's own template in the content block.
 """
 from django.conf import settings
@@ -9,7 +9,7 @@ from django.http import Http404, HttpResponse, HttpResponseForbidden, JsonRespon
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from apps.devices.vendors import vendor_menu, vendor_meta
+from data_access.devices.vendors import vendor_menu, vendor_meta
 
 from core.pages import BY_KEY, DEVICE_PAGE, HOME, menu_for, page_urls, url_of
 
