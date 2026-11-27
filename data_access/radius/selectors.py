@@ -420,10 +420,32 @@ def limit_violations(hours=24):
     except Exception:
         logger.warning("Could not check per-device login limits", exc_info=True)
         return []
+    # a login accepted BEFORE the user's devices were last changed was allowed then (e.g. "All devices"
+    # until an hour ago): only a login after the change can break the current limit
+    changed = _last_user_change({u for u, _, _, _ in rows})
+    rows = [r for r in rows if not _before(r[2], changed.get(r[0]))]
     name_of = device_namer()
     return [{"username": u, "ip": ip, "device": name_of(ip), "count": n,
              "last": t.strftime("%d %b %Y, %I:%M %p") if hasattr(t, "strftime") else str(t or "")}
             for u, ip, t, n in rows]
+
+
+def _last_user_change(usernames):
+    """{username: when the user was last created or edited (RADIUS admin log), in the database clock}."""
+    from django.db.models import Max
+    if not usernames:
+        return {}
+    rows = (AuditLog.objects.filter(action__in=("user.create", "user.update"), target__in=usernames)
+            .values("target").annotate(at=Max("created_at")))
+    return {r["target"]: _db_clock(r["at"]) for r in rows if r["at"]}
+
+
+def _before(login_at, changed_at):
+    if changed_at is None or not hasattr(login_at, "tzinfo"):
+        return False
+    if login_at.tzinfo is not None:                  # raw cursors normally give the database clock, naive
+        login_at = _db_clock(login_at)
+    return login_at < changed_at
 
 
 def nas_rows():
