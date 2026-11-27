@@ -5,7 +5,11 @@
 #   perl postauth_query.pl has COLUMN FILE   exit 0 when the top-level post-auth block mentions COLUMN
 #   perl postauth_query.pl show FILE         print the top-level post-auth block
 #   perl postauth_query.pl patch FILE        rewrite its first query so it also writes nasipaddress,
-#                                            nasidentifier, calledstationid and callingstationid; exit 3 = no such query
+#                                            nasidentifier, calledstationid and callingstationid, and writes
+#                                            '' as pass; exit 3 = no such query
+#
+# The packaged query writes %{User-Password} into radpostauth.pass: the clear text of every PAP login,
+# right or wrong. VAULT never stores a readable password, so the patched query leaves pass empty.
 #
 # The file can also have post-auth { } blocks nested inside accounting { type { ... } } (some FreeRADIUS
 # packages do): those write to the accounting tables and must not be touched. So the block is found by
@@ -132,7 +136,7 @@ my $q = "\"\\$nl"
     . ($cls ? " \${..class.column_name}" : '') . ") \\$nl"
     . "\t\tVALUES ( \\$nl"
     . "\t\t\t'%{SQL-User-Name}', \\$nl"
-    . "\t\t\t'%{%{User-Password}:-%{Chap-Password}}', \\$nl"
+    . "\t\t\t'', \\$nl"      # pass: never the typed password
     . "\t\t\t'%{reply:Packet-Type}', \\$nl"
     . "\t\t\t'$ts', \\$nl"
     . "\t\t\t'%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', \\$nl"

@@ -420,7 +420,9 @@ Rejected (failed) logins are kept for **24 hours** only. **Forever deletes none 
   `limit_proxy_state = auto` in FreeRADIUS (`deploy/radius/enable_blastradius.sh`); needs FreeRADIUS 3.2.5 or a
   package with the fix, otherwise the installer says to update it. Keep RADIUS on a management network or VPN
   where you can, and update device firmware so devices send and check Message-Authenticator
-- Every device login is recorded in Authentication Audit
+- Every device login is recorded in Authentication Audit, without the password: the packaged FreeRADIUS query
+  writes the typed password of every PAP login into `radpostauth.pass`; the installer changes it to write an
+  empty value and clears the passwords already stored (`deploy/radius/enable_login_log.sh`)
 - Accepted logins are kept as long as **System Settings > Keep logs and backup files for** (Forever, 12, 24 or 48 months); rejected ones are kept for 24 hours only (an hourly clean-up)
 
 **Session Log (syslog)**

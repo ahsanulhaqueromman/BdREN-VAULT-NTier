@@ -8,6 +8,8 @@
 #      (Calling-Station-Id: the address the person logged in FROM, e.g. the SSH client's IP)
 #   2. changes ONLY the "post-auth" query of FreeRADIUS's SQL module so it fills those columns
 #      (device IP = NAS-IP-Address, or the packet's source address when the device does not send it)
+#      and never writes the typed password into radpostauth.pass; passwords written by older queries
+#      are removed
 #   3. checks the FreeRADIUS configuration; if the check fails the original file is put back
 #   4. restarts FreeRADIUS
 #
@@ -78,8 +80,10 @@ if grep -q "DBMS_PATCH_INCOMPLETE" "$QUERIES"; then
   cp -p "$QUERIES" "$QUERIES.dbms-before-cleanup-$(date +%Y%m%d-%H%M%S)"
   sed -i '/DBMS_PATCH_INCOMPLETE/d' "$QUERIES"; ok "removed a leftover marker from an earlier failed run"
 fi
-if postauth_has nasipaddress && postauth_has nasidentifier && postauth_has calledstationid && postauth_has callingstationid; then
-  ok "post-auth query already records the device"
+# the query must not write the typed password (User-Password / Chap-Password) into radpostauth.pass
+no_password() { ! postauth_has User-Password && ! postauth_has Chap-Password; }
+if postauth_has nasipaddress && postauth_has nasidentifier && postauth_has calledstationid && postauth_has callingstationid && no_password; then
+  ok "post-auth query already records the device and never the password"
   CHANGED=0
 else
   BACKUP="$QUERIES.dbms-backup-$(date +%Y%m%d-%H%M%S)"
@@ -93,7 +97,7 @@ else
   perl "$PA" patch "$QUERIES"
   rc=$?
   set -e
-  if [ "$rc" != "0" ] || ! postauth_has nasipaddress || ! postauth_has nasidentifier || ! postauth_has calledstationid || ! postauth_has callingstationid; then
+  if [ "$rc" != "0" ] || ! postauth_has nasipaddress || ! postauth_has nasidentifier || ! postauth_has calledstationid || ! postauth_has callingstationid || ! no_password; then
     cp -p "$BACKUP" "$QUERIES"
     printf '\033[1;31mERROR:\033[0m %s\n' "The post-auth query in $QUERIES has a layout this script does not know; nothing was changed." >&2
     echo "       This is the post-auth block found in the file (send it to the VAULT maintainer):" >&2
@@ -103,9 +107,14 @@ else
     echo "       right after the authdate value ('%S' or '%S.%M'), then run this script again." >&2
     exit 1
   fi
-  ok "post-auth query now records the device IP, identifier, Called-Station-Id and Calling-Station-Id"
+  ok "post-auth query now records the device IP, identifier, Called-Station-Id and Calling-Station-Id, and no password"
   CHANGED=1
 fi
+
+# ---- 2b. remove the passwords older queries wrote into radpostauth.pass --------------------------
+WIPED="$(sql "UPDATE radpostauth SET pass='' WHERE pass<>''; SELECT ROW_COUNT()")" || die "Cannot clear radpostauth.pass"
+if [ "${WIPED:-0}" != "0" ]; then ok "removed $WIPED clear-text password(s) from earlier login records"
+else ok "no password is stored in the login records"; fi
 
 # ---- 3. check the configuration, then restart ---------------------------------------------------
 RADIUSD="$(command -v freeradius || command -v radiusd || true)"
