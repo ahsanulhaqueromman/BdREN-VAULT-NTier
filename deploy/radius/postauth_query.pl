@@ -139,7 +139,7 @@ my $q = "\"\\$nl"
     . "\t\t\t'', \\$nl"      # pass: never the typed password
     . "\t\t\t'%{reply:Packet-Type}', \\$nl"
     . "\t\t\t'$ts', \\$nl"
-    . "\t\t\t'%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', \\$nl"
+    . "\t\t\t'%{Packet-Src-IP-Address}', \\$nl"
     . "\t\t\t'%{NAS-Identifier}', \\$nl"
     . "\t\t\t'%{Called-Station-Id}', \\$nl"
     . "\t\t\t'%{Calling-Station-Id}'"

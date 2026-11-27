@@ -7,7 +7,8 @@
 #      calledstationid (Called-Station-Id: port / AP / SSID the device reports) and callingstationid
 #      (Calling-Station-Id: the address the person logged in FROM, e.g. the SSH client's IP)
 #   2. changes ONLY the "post-auth" query of FreeRADIUS's SQL module so it fills those columns
-#      (device IP = NAS-IP-Address, or the packet's source address when the device does not send it)
+#      (device IP = the address the request came from, the one in NAS Clients and the one the
+#      per-device limit checks; NAS-IP-Address is a device's own address and differs behind NAT)
 #      and never writes the typed password into radpostauth.pass; passwords written by older queries
 #      are removed
 #   3. checks the FreeRADIUS configuration; if the check fails the original file is put back
@@ -82,7 +83,10 @@ if grep -q "DBMS_PATCH_INCOMPLETE" "$QUERIES"; then
 fi
 # the query must not write the typed password (User-Password / Chap-Password) into radpostauth.pass
 no_password() { ! postauth_has User-Password && ! postauth_has Chap-Password; }
-if postauth_has nasipaddress && postauth_has nasidentifier && postauth_has calledstationid && postauth_has callingstationid && no_password; then
+# the device column must be the address the request came from (older versions wrote NAS-IP-Address,
+# which behind NAT is not the address in NAS Clients, so a correct login looked like a limit violation)
+up_to_date() { no_password && ! postauth_has NAS-IP-Address; }
+if postauth_has nasipaddress && postauth_has nasidentifier && postauth_has calledstationid && postauth_has callingstationid && up_to_date; then
   ok "post-auth query already records the device and never the password"
   CHANGED=0
 else
@@ -97,13 +101,13 @@ else
   perl "$PA" patch "$QUERIES"
   rc=$?
   set -e
-  if [ "$rc" != "0" ] || ! postauth_has nasipaddress || ! postauth_has nasidentifier || ! postauth_has calledstationid || ! postauth_has callingstationid || ! no_password; then
+  if [ "$rc" != "0" ] || ! postauth_has nasipaddress || ! postauth_has nasidentifier || ! postauth_has calledstationid || ! postauth_has callingstationid || ! up_to_date; then
     cp -p "$BACKUP" "$QUERIES"
     printf '\033[1;31mERROR:\033[0m %s\n' "The post-auth query in $QUERIES has a layout this script does not know; nothing was changed." >&2
     echo "       This is the post-auth block found in the file (send it to the VAULT maintainer):" >&2
     show_postauth "$BACKUP"
     echo "       Or edit it by hand: add 'nasipaddress, nasidentifier, calledstationid, callingstationid' after 'authdate' in the" >&2
-    echo "       column list, and , '%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', '%{NAS-Identifier}', '%{Called-Station-Id}', '%{Calling-Station-Id}'" >&2
+    echo "       column list, and , '%{Packet-Src-IP-Address}', '%{NAS-Identifier}', '%{Called-Station-Id}', '%{Calling-Station-Id}'" >&2
     echo "       right after the authdate value ('%S' or '%S.%M'), then run this script again." >&2
     exit 1
   fi

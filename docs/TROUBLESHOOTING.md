@@ -209,10 +209,10 @@ Edit the `query = "..."` directly inside the **top-level** `post-auth {` block (
 			(username, pass, reply, authdate, nasipaddress, nasidentifier, calledstationid, callingstationid ${..class.column_name}) \
 		VALUES ( \
 			'%{SQL-User-Name}', \
-			'%{%{User-Password}:-%{Chap-Password}}', \
+			'', \
 			'%{reply:Packet-Type}', \
 			'%S.%M', \
-			'%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', \
+			'%{Packet-Src-IP-Address}', \
 			'%{NAS-Identifier}', \
 			'%{Called-Station-Id}', \
 			'%{Calling-Station-Id}' \
@@ -227,10 +227,10 @@ On FreeRADIUS **3.0** (authdate `'%S'`, no class column):
 			(username, pass, reply, authdate, nasipaddress, nasidentifier, calledstationid, callingstationid) \
 		VALUES ( \
 			'%{SQL-User-Name}', \
-			'%{%{User-Password}:-%{Chap-Password}}', \
+			'', \
 			'%{reply:Packet-Type}', \
 			'%S', \
-			'%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', \
+			'%{Packet-Src-IP-Address}', \
 			'%{NAS-Identifier}', \
 			'%{Called-Station-Id}', \
 			'%{Calling-Station-Id}')"
