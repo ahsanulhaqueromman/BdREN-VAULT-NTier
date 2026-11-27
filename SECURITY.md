@@ -21,7 +21,7 @@ You will get an answer as soon as possible, and a fix will be released through t
 | Portal sign-in | Django password hashing, minimum 12 characters; 5 wrong passwords lock that address and username for 5 minutes; nginx rate limit on `/login`; fail2ban; idle sign-out (15 minutes by default) |
 | Authorisation | Viewer / Operator / Administrator roles checked on every page and API call; RADIUS / AAA, user management and reusing saved device logins are administrator-only; an Operator who changes a device's address or SSH port must type its password again |
 | Device passwords | Encrypted with Fernet; the key is `data/secret.key` on the server only; hidden in the portal until **Show** is pressed |
-| RADIUS user passwords | Stored only as salted SHA-256, which works with PAP; MS-CHAP / CHAP logins are not supported |
+| RADIUS user passwords | Never stored in clear text: salted SHA-256 for PAP and the NT hash for MS-CHAPv2 (MikroTik). The NT hash is unsalted, so keep the radius database and its backups private; CHAP is not supported |
 | RADIUS protocol | BlastRADIUS (CVE-2024-3596) protection applied by the installer; rejected login records kept for 24 hours |
 | RADIUS secrets | Hidden until **Show** or **Copy**; revealing one is logged |
 | Saved configurations | SHA-256 checksum per version; files owned by the `vault` service user |

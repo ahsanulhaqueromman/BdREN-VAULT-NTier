@@ -164,9 +164,11 @@ extra table, `dbms_user_nas` (where a user may log in). FreeRADIUS uses three po
 Access levels send each vendor's attribute with `:=`, so nothing else can override the level chosen in the
 panel. `deploy/radius/check_levels.sh` verifies the whole chain on a server.
 
-- **Passwords** are stored only as salted SHA-256 (`SSHA2-256-Password`, `services.hash_password`); FreeRADIUS
-  checks them with PAP. `manage.py radius_hash_passwords` (run by the installer) converts clear-text ones left
-  by older versions, keeping the same passwords.
+- **Passwords** are never stored in clear text (`services.password_rows`): salted SHA-256
+  (`SSHA2-256-Password`) answers PAP logins, and the NT hash (`NT-Password`, `core/nthash.py`) answers
+  MS-CHAP / MS-CHAPv2, which MikroTik RouterOS uses for management logins. Users saved before the NT hash was
+  kept show "No MikroTik login" until their password is set again. `manage.py radius_hash_passwords` (run by the
+  installer) converts clear-text ones left by older versions, keeping the same passwords.
 - **BlastRADIUS** (CVE-2024-3596): `deploy/radius/enable_blastradius.sh` (run by the installer) makes sure
   radiusd.conf has `require_message_authenticator = auto` and `limit_proxy_state = auto`.
 - **Firewall**: UDP 1812 / 1813 and 514 open only for NAS Clients addresses (`deploy/radius/vault-radius-firewall`,

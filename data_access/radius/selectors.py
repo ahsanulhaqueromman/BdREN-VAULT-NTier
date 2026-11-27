@@ -13,7 +13,9 @@ from database.radius.models import NO_DEVICE, ROLE_SUGGESTIONS, AuditLog, Nas, N
 from data_access.radius.repositories import DB
 
 logger = logging.getLogger("dbms")
-PASSWORD_ATTRS = ("Cleartext-Password", "SSHA2-256-Password")
+PASSWORD_ATTRS = ("Cleartext-Password", "SSHA2-256-Password", "NT-Password")
+# rows that answer MS-CHAP / MS-CHAPv2 (MikroTik management logins); a user with neither needs the password set again
+MSCHAP_ATTRS = ("Cleartext-Password", "NT-Password")
 REJECTED_KEEP = timedelta(hours=24)   # rejected logins are shown, and kept, for this long only (accepted ones follow Settings)
 LEGACY_ATTR = "NAS-IP-Address"
 LEGACY_OP = "=~"
@@ -99,13 +101,16 @@ def list_users(query=""):
     groups = dict(RadUserGroup.objects.values_list("username", "groupname"))
     limits, grants = user_devices(), user_grants()
     legacy = dict(RadCheck.objects.filter(attribute=LEGACY_ATTR, op=LEGACY_OP).values_list("username", "value"))
+    mschap = set(RadCheck.objects.filter(attribute__in=MSCHAP_ATTRS).values_list("username", flat=True))
     out = []
     for n in names:
         access = access_of(n, grants, limits)
         out.append({"username": n, "level": groups.get(n, "-"), "types": access["types"],
                     "devices": access["devices"] or ([] if access["types"] else pattern_devices(legacy.get(n, ""))),
                     # every address the user can log in on right now (types expanded); [] with types = none yet
-                    "effective": limits.get(n, [])})
+                    "effective": limits.get(n, []),
+                    # False = stored before the NT hash was kept: MikroTik logins fail until the password is set again
+                    "mschap": n in mschap})
     return out
 
 

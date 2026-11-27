@@ -126,7 +126,8 @@ sudo systemctl start freeradius
 | `Shared secret is incorrect` | The secret on the device differs from the one in **NAS Clients** |
 | `Access-Reject` for a valid user | Wrong password, the user is not allowed on that device, or the source address is blocked after an unknown-username login (see **Authentication Audit**) |
 | Logged in with the wrong level | Run `check_levels.sh`; it names the cause and the fix |
-| `Access-Reject` and `freeradius -X` says no Cleartext-Password / CHAP / MS-CHAP | Passwords are stored as salted SHA-256, which works with PAP only. Set the device to PAP for logins (SSH / Telnet logins use PAP by default) |
+| `Access-Reject` and `freeradius -X` says `No NT-Password` (MikroTik, MS-CHAPv2) | The password was saved before VAULT kept the NT hash (marked "No MikroTik login" on RADIUS Users). Set the user's password again |
+| `Access-Reject` and `freeradius -X` mentions CHAP-Password | CHAP needs the clear text, which VAULT never stores. Set the device to PAP or MS-CHAPv2 |
 | A device was fine, then every request is dropped with a Message-Authenticator message | BlastRADIUS protection (`require_message_authenticator = auto`): the device sent Message-Authenticator once and now sends a request without it. Update its firmware or its RADIUS settings so it always sends it |
 
 > Every device must keep one **local** administrator account, so you can still log in when RADIUS is down.

@@ -15,6 +15,8 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
+from core.nthash import nt_hash
+
 from data_access.radius import selectors
 from database.radius.models import (NO_DEVICE, ROLE_MAX_LEN, ROLE_SUGGESTIONS, AuditLog, Nas, NasRole, RadCheck, RadGroupReply, RadUserGroup,
                      UserDevice, UserGrant, clean_role, RadPostAuth)
@@ -121,12 +123,19 @@ def prune_old_logins(now=None):
 
 
 def hash_password(password):
-    """(attribute, value) to store for a password: always salted SHA-256, in the form FreeRADIUS expects for
-    SSHA2-256-Password, base64(digest + salt). The password itself is never stored (PAP logins only, which is
-    what SSH / Telnet logins on network devices use)."""
+    """(attribute, value) of the salted SHA-256 for a password, in the form FreeRADIUS expects for
+    SSHA2-256-Password, base64(digest + salt). Checks PAP logins (SSH / Telnet on most network devices)."""
     salt = os.urandom(16)
     digest = hashlib.sha256(password.encode("utf-8") + salt).digest()
     return "SSHA2-256-Password", base64.b64encode(digest + salt).decode("ascii")
+
+
+def password_rows(password):
+    """Every radcheck row stored for a password. The password itself is never stored:
+    - SSHA2-256-Password (salted SHA-256) answers PAP logins;
+    - NT-Password (NT hash, MD4) answers MS-CHAP / MS-CHAPv2, which MikroTik RouterOS uses for its
+      management logins. An NT hash is unsalted, so the radius database and its backups must stay private."""
+    return [hash_password(password), ("NT-Password", nt_hash(password))]
 
 
 def seed_groups():
@@ -140,8 +149,8 @@ def seed_groups():
 
 def _set_password(username, password):
     RadCheck.objects.filter(username=username, attribute__in=PASSWORD_ATTRS).delete()
-    attr, val = hash_password(password)
-    RadCheck.objects.create(username=username, attribute=attr, op=":=", value=val)
+    for attr, val in password_rows(password):        # SSHA2 first: PAP uses the first password row it finds
+        RadCheck.objects.create(username=username, attribute=attr, op=":=", value=val)
 
 
 def cleartext_users(usernames=None):
@@ -153,9 +162,9 @@ def cleartext_users(usernames=None):
 
 
 def hash_cleartext_passwords(usernames=None, actor="system"):
-    """Replace clear-text RADIUS passwords with salted SHA-256 (SSHA2-256-Password), keeping the same
-    password: nobody has to set a new one. Cannot be undone (the clear text is gone), and FreeRADIUS then
-    accepts PAP logins only for these users (CHAP / MS-CHAP need the clear text). Returns the usernames done."""
+    """Replace clear-text RADIUS passwords with salted SHA-256 plus the NT hash (password_rows), keeping the
+    same password: nobody has to set a new one. Cannot be undone (the clear text is gone); PAP and MS-CHAP /
+    MS-CHAPv2 logins keep working, CHAP does not. Returns the usernames done."""
     done = []
     for username in cleartext_users(usernames):
         with transaction.atomic(using=DB):
@@ -163,12 +172,13 @@ def hash_cleartext_passwords(usernames=None, actor="system"):
                    .order_by("id").first())
             if row is None:
                 continue
-            attr, value = hash_password(row.value)
+            rows = password_rows(row.value)
             RadCheck.objects.filter(username=username, attribute__in=PASSWORD_ATTRS).delete()
-            RadCheck.objects.create(username=username, attribute=attr, op=":=", value=value)
+            for attr, value in rows:
+                RadCheck.objects.create(username=username, attribute=attr, op=":=", value=value)
         done.append(username)
     if done:
-        audit(actor, "user.hash", ", ".join(done)[:200], f"{len(done)} password(s) now stored as salted SHA-256")
+        audit(actor, "user.hash", ", ".join(done)[:200], f"{len(done)} password(s) now stored as salted SHA-256 and NT hash")
     return done
 
 

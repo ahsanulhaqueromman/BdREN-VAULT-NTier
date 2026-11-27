@@ -177,7 +177,8 @@ RADIUS_DYNAMIC_CLIENTS = env_flag("RADIUS_DYNAMIC_CLIENTS")
 # Keeps UDP 1812/1813 open in ufw only for the devices on NAS Clients, run after a device is added or
 # removed. Set by deploy/radius/enable_firewall_sync.sh (sudo -n /usr/local/sbin/vault-radius-firewall); empty = off
 RADIUS_FIREWALL_CMD = os.environ.get("RADIUS_FIREWALL_CMD", "").strip()
-# RADIUS user passwords are always stored as salted SHA-256 (business/radius/services.py hash_password); the old
+# RADIUS user passwords are always stored as salted SHA-256 plus the NT hash for MS-CHAPv2 / MikroTik
+# (business/radius/services.py password_rows); the old
 # RADIUS_PASSWORD_MODE setting is no longer read.
 
 # ---------- users and sessions ----------

@@ -45,11 +45,13 @@ let radViolations=[];
 function paintRadViolations(){
   let box=$("#radLimitWarn");
   if(!box){box=document.createElement("div");box.id="radLimitWarn";$("#radUserList").before(box)}
-  box.innerHTML=radViolations.length?`<div class="rad-note"><b>Device limits are not being enforced.</b> In the last 24 hours FreeRADIUS accepted these logins on devices the user is not allowed to use:
+  const old=radUsers.filter(u=>u.mschap===false);
+  const ms=old.length?`<div class="rad-note"><b>${radPlural(old.length,"user")} cannot log in on MikroTik yet.</b> MikroTik RouterOS checks logins with MS-CHAPv2, which needs the NT hash VAULT now keeps with every new password. These passwords were saved before that: open <b>Edit</b> and set the password again (it may be the same one). PAP logins (Cisco, Huawei, Juniper, FortiGate) keep working meanwhile.</div>`:"";
+  box.innerHTML=ms+(radViolations.length?`<div class="rad-note"><b>Device limits are not being enforced.</b> In the last 24 hours FreeRADIUS accepted these logins on devices the user is not allowed to use:
     <ul>${radViolations.map(v=>`<li><b>${esc(v.username)}</b> on ${esc(v.device||"unknown device")} <span class="m">(${esc(v.ip)})</span> - ${v.count} login${v.count===1?"":"s"}, last at ${esc(v.last)}</li>`).join("")}</ul>
     (An entry disappears as soon as FreeRADIUS refuses that user on that device, and after 24 hours at the latest.)<br>
     Usually the "where this user can log in" rule is not installed in FreeRADIUS. Install it once on the server (this also checks and restarts FreeRADIUS):
-    <code>sudo bash /opt/vault/deploy/install.sh</code>If the rule is installed, the device sends its requests from a different address than the one in NAS: register that address.</div>`:"";
+    <code>sudo bash /opt/vault/deploy/install.sh</code>If the rule is installed, the device sends its requests from a different address than the one in NAS: register that address.</div>`:"");
 }
 function renderRadUsers(){
   paintRadViolations();
@@ -59,7 +61,7 @@ function renderRadUsers(){
   $("#radUserCount").textContent=`${list.length} of ${radUsers.length} users`;
   const {rows,bar}=paginate("radUsers",list);
   $("#radUserList").innerHTML=list.length?`<div class="tbl"><table><thead><tr><th>Username</th><th>Access level</th><th>Can log in on</th><th class="acts">Action</th></tr></thead><tbody>`+
-    rows.map(u=>`<tr><td><span class="dn">${esc(u.username)}</span></td><td>${lvPill(u.level)}</td><td>${radScope(u)}</td>
+    rows.map(u=>`<tr><td><span class="dn">${esc(u.username)}</span>${u.mschap===false?' <span class="tag" title="Saved before VAULT kept the NT hash: set the password again so MikroTik (MS-CHAPv2) logins work">No MikroTik login</span>':""}</td><td>${lvPill(u.level)}</td><td>${radScope(u)}</td>
      <td class="acts">${actMenu(esc(u.username),`<button class="link" type="button" data-rad-edit="${esc(u.username)}">Edit</button><button class="link d" type="button" data-rad-del="${esc(u.username)}">Delete</button>`)}</td></tr>`).join("")+`</tbody></table></div>`+bar
     :`<div class="empty"><b>${radUsers.length?"No matching users":"No RADIUS users yet"}</b>${radUsers.length?"Try changing the search or the access level.":"Use Add user to create the first device login."}${radUsers.length?"":emptyAct("Add user","#radAddUser")}</div>`;
 }
@@ -378,7 +380,7 @@ display users`]]},
     ["RADIUS server and login","VAULT sends the group full, write or read; these groups exist on every RouterOS.",
 `/radius add address=${v.server} secret="${v.secret}" service=login timeout=3s
 /user aaa set use-radius=yes default-group=read`],
-    ["Good to know","RouterOS checks its local users first: a local user with the same name as a VAULT user hides the RADIUS one. Behind NAT, register the NAT address in NAS. If the server log shows no error but the login still fails, the router is waiting for a Message-Authenticator in the answer:",
+    ["Good to know","RouterOS logs in with MS-CHAPv2: a user whose password was saved before VAULT kept the NT hash is marked \"No MikroTik login\" on RADIUS Users; set the password again. RouterOS checks its local users first: a local user with the same name as a VAULT user hides the RADIUS one. Behind NAT, register the NAT address in NAS. If the server log shows no error but the login still fails, the router is waiting for a Message-Authenticator in the answer:",
 `/radius set [find address=${v.server}] require-message-auth=no`],
     ["Test","Log in with a VAULT RADIUS user (SSH, Winbox or web), then:",`/user active print`]]},
   {key:"fortigate",label:"FortiGate",match:["fortinet"],steps:v=>[

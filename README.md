@@ -92,7 +92,7 @@ V-SOL · any other device through generic SSH
 - New NAS devices work immediately, with no FreeRADIUS restart
 - A NAS device added without a name gets the name it sends in its syslog (for example Cisco
   `logging origin-id hostname`); the name is kept on NAS Clients and every page reads it from there
-- User passwords are stored only as salted SHA-256, never in clear text
+- User passwords are never stored in clear text (salted SHA-256 for PAP, NT hash for MikroTik MS-CHAPv2)
 - **Authentication Audit:** every login attempt, with the device it went to and the address it came from
 - **Session Log:** every device login as a session (who, which device, from where, how long) and,
   by device or by user, each session from login through every command and configuration change to logout; read from the devices' own
@@ -385,7 +385,7 @@ Rejected (failed) logins are kept for **24 hours** only. **Forever deletes none 
 | Sign-in | Hashed passwords, lockout after 5 failures, rate limit, fail2ban, idle sign-out |
 | Authorisation | Viewer / Operator / Administrator, checked on the server for every page and API call |
 | Device access | Backup sends read-only commands only (allow-list); SSH host keys are checked |
-| Stored secrets | Device passwords encrypted (key kept outside the database and Git); RADIUS passwords salted SHA-256 |
+| Stored secrets | Device passwords encrypted (key kept outside the database and Git); RADIUS passwords salted SHA-256 plus NT hash (MS-CHAPv2) |
 | Network | RADIUS and syslog ports open only for registered devices (NAS Clients) |
 | Traceability | Portal audit trail, Authentication Audit, Session Log |
 
@@ -408,10 +408,13 @@ Rejected (failed) logins are kept for **24 hours** only. **Forever deletes none 
 - UDP 1812 / 1813 is open only to devices on the NAS Clients list; the firewall is updated by a root-owned
   script that takes no arguments, so the website cannot choose a firewall rule
 - User passwords are stored only as salted SHA-256 (`SSHA2-256-Password`), so the `radius` database and its
-  backups hold no readable password. The installer converts passwords left in clear text by older versions
-  (`manage.py radius_hash_passwords`), keeping the same passwords. Logins use PAP, which SSH / Telnet logins on
-  network devices use; CHAP / MS-CHAP need the clear text (or an NT hash) and do not work, which includes the
-  management login of current MikroTik RouterOS (MS-CHAPv2); MikroTik backup and Session Log still work
+  backups hold no readable password. Each password is kept twice: salted SHA-256 (`SSHA2-256-Password`) for
+  PAP logins (SSH / Telnet on Cisco, Huawei, Juniper, FortiGate ...) and the NT hash (`NT-Password`) for
+  MS-CHAP / MS-CHAPv2, which MikroTik RouterOS uses for its management logins (SSH, Winbox, web). CHAP does
+  not work. The NT hash is unsalted, so keep the `radius` database and its backups private
+- Users whose password was saved before the NT hash was kept are marked **No MikroTik login** on RADIUS Users;
+  setting the password again (it may be the same one) fixes it. The installer converts passwords left in clear
+  text by older versions (`manage.py radius_hash_passwords`) to both forms, keeping the same passwords
 - Shared secrets are 24 random characters per device
 - BlastRADIUS (CVE-2024-3596): the installer sets `require_message_authenticator = auto` and
   `limit_proxy_state = auto` in FreeRADIUS (`deploy/radius/enable_blastradius.sh`); needs FreeRADIUS 3.2.5 or a
