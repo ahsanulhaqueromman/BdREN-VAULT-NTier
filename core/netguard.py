@@ -7,10 +7,24 @@ one of them. Unset = any ordinary address is allowed. DNS is resolved once and t
 address is pinned for the SSH connection.
 """
 import ipaddress
+import logging
 import socket
+
+logger = logging.getLogger(__name__)
+
+
+def _valid_host_input(host):
+    if not isinstance(host, str):
+        return False
+    h = host.strip()
+    if not h or h != host or len(h) > 253 or h.startswith("-"):
+        return False
+    return not any(ord(ch) < 32 or ord(ch) == 127 or ch.isspace() for ch in h)
 
 
 def _resolve(host):
+    if not _valid_host_input(host):
+        return []
     try:
         return [ipaddress.ip_address(host)]
     except ValueError:
@@ -20,6 +34,18 @@ def _resolve(host):
                           key=lambda a: (a.version, int(a)))
         except (OSError, ValueError):
             return []
+
+
+def _unwrap_ip(addr):
+    """Unwrap IPv6 transition/embedded addresses (ipv4-mapped, 6to4, teredo) to inspect the underlying IPv4."""
+    if addr.version == 6:
+        if getattr(addr, "ipv4_mapped", None):
+            return addr.ipv4_mapped
+        if getattr(addr, "sixtofour", None):
+            return addr.sixtofour
+        if getattr(addr, "teredo", None):
+            return addr.teredo[1]
+    return addr
 
 
 def _networks():
@@ -33,9 +59,7 @@ def resolve_allowed_host(host):
     addresses = _resolve(host)
     if not addresses:
         return None
-    # "::ffff:127.0.0.1" is the IPv4 loopback written as IPv6; Python before 3.13 does not call it loopback,
-    # so judge the IPv4 address inside it.
-    addresses = [getattr(a, "ipv4_mapped", None) or a for a in addresses]
+    addresses = [_unwrap_ip(a) for a in addresses]
     forbidden = lambda a: (a.is_loopback or a.is_link_local or a.is_multicast
                            or a.is_unspecified or a.is_reserved)
     if any(forbidden(address) for address in addresses):
@@ -43,6 +67,7 @@ def resolve_allowed_host(host):
     try:
         networks = _networks()
     except ValueError:
+        logger.error("Invalid CIDR entry in ALLOWED_DEVICE_NETWORKS; refusing all hosts")
         return None                      # a broken allow-list must not silently allow everything
     if networks and not all(any(a.version == n.version and a in n for n in networks) for a in addresses):
         return None

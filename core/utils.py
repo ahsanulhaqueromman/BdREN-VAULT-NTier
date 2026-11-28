@@ -3,17 +3,25 @@ import json
 
 from django.utils import timezone
 
+from core.exceptions import ApiError
+
 DT_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
+def _aware(value):
+    if timezone.is_naive(value):
+        return timezone.make_aware(value, timezone.get_default_timezone())
+    return value
+
+
 def fmt_dt(value):
-    """Aware datetime -> machine-readable Bangladesh-local 'YYYY-MM-DD HH:MM:SS'."""
-    return timezone.localtime(value).strftime(DT_FORMAT) if value else ""
+    """Datetime -> machine-readable Bangladesh-local 'YYYY-MM-DD HH:MM:SS'."""
+    return timezone.localtime(_aware(value)).strftime(DT_FORMAT) if value else ""
 
 
 def fmt_dt_ampm(value):
-    """Aware datetime -> human-readable Bangladesh-local date/time with AM/PM."""
-    return timezone.localtime(value).strftime("%Y-%m-%d %I:%M:%S %p") if value else ""
+    """Datetime -> human-readable Bangladesh-local date/time with AM/PM."""
+    return timezone.localtime(_aware(value)).strftime("%Y-%m-%d %I:%M:%S %p") if value else ""
 
 
 def csv_safe(value):
@@ -23,9 +31,14 @@ def csv_safe(value):
 
 
 def parse_json(request):
-    """JSON body of a request as a dict; anything invalid becomes {}."""
-    try:
-        data = json.loads(request.body or b"{}")
-    except (ValueError, UnicodeDecodeError):
+    """JSON body of a request as a dict; raises ApiError(400) on invalid JSON or non-object payloads."""
+    raw = request.body
+    if not raw or not raw.strip():
         return {}
-    return data if isinstance(data, dict) else {}
+    try:
+        data = json.loads(raw)
+    except (ValueError, UnicodeDecodeError):
+        raise ApiError(400, "Invalid JSON payload")
+    if not isinstance(data, dict):
+        raise ApiError(400, "JSON body must be an object")
+    return data

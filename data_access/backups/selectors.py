@@ -351,11 +351,15 @@ def recent_changes(limit=6):
 
 
 def last_failure_messages(ips):
-    """{ip: message of that device's newest FAILED backup} - one small indexed read per device shown."""
+    """{ip: message of that device's newest FAILED backup} in a single batched query."""
+    ip_list = [ip for ip in dict.fromkeys(ips) if ip]
+    if not ip_list:
+        return {}
     out = {}
-    for ip in ips:
-        msg = BackupLog.objects.filter(ip=ip, status="FAILED").order_by("-ts").values_list("message", flat=True).first()
-        if msg:
+    for ip, msg in (BackupLog.objects.filter(ip__in=ip_list, status="FAILED")
+                    .order_by("ip", "-ts")
+                    .values_list("ip", "message")):
+        if ip not in out and msg:
             out[ip] = msg
     return out
 

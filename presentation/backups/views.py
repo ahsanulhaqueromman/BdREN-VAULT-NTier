@@ -36,7 +36,14 @@ def start_backup(request):
     """Start a backup of the selected devices (all devices when none are selected)."""
     payload = parse_json(request)
     force_ssh = payload.get("force_ssh") is True
-    job_id, count = services.start_manual_backup(payload.get("ids") or [], force_ssh, request.user.username)
+    raw_ids = payload.get("ids")
+    if raw_ids is None:
+        ids = []
+    elif not isinstance(raw_ids, list) or any(not isinstance(i, int) or isinstance(i, bool) for i in raw_ids):
+        raise ApiError(400, "ids must be a list of integer device IDs")
+    else:
+        ids = raw_ids
+    job_id, count = services.start_manual_backup(ids, force_ssh, request.user.username)
     record_audit(request, "backup.manual_force_start" if force_ssh else "backup.manual_start",
                  f"{count} device(s)", f"job_id={job_id}; force_ssh={force_ssh}")
     return JsonResponse({"job": job_id})

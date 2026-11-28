@@ -81,7 +81,7 @@ NEW_ADDRESS_NEEDS_PASSWORD = ("To change the address or SSH port, type the devic
 
 
 def _is_admin(user):
-    return user is None or user.has_role("admin")
+    return bool(user is not None and user.has_role("admin"))
 
 
 def _check_saved_login(credential_id, user):
@@ -149,9 +149,14 @@ def delete_device(pk):
     return device
 
 
-def delete_devices(ids):
-    """Remove these devices; an empty list removes every device. Returns how many were removed."""
-    rows = Device.objects.filter(id__in=ids) if ids else Device.objects.all()
+def delete_devices(ids, delete_all=False):
+    """Remove these devices; empty `ids` requires explicit `delete_all=True`. Returns how many were removed."""
+    if not ids:
+        if not delete_all:
+            raise ApiError(400, "Select at least one device to delete")
+        rows = Device.objects.all()
+    else:
+        rows = Device.objects.filter(id__in=ids)
     return rows.delete()[1].get("devices.Device", 0)
 
 

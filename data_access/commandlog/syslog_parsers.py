@@ -61,17 +61,24 @@ def hostname(data):
 
 
 def _clean(value, limit=MAX_COMMAND):
-    value = re.sub(r"[\x00-\x1f\x7f]", " ", value or "").strip()
+    value = re.sub(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]", " ", value or "").strip()
     return value[:limit]
 
 
 def _event(vendor, kind, username, command="", source_ip="", result=""):
+    import ipaddress
     username = _clean(username, 64).strip("'\"")
     if not username:
         return None
-    if set(source_ip or "") <= {"*", " "}:           # Huawei writes Ip=** when it hides the address
-        source_ip = ""
-    return {"vendor": vendor, "kind": kind, "username": username, "source_ip": _clean(source_ip, 64),
+    cleaned_ip = _clean(source_ip, 64)
+    if set(cleaned_ip or "") <= {"*", " "}:           # Huawei writes Ip=** when it hides the address
+        cleaned_ip = ""
+    elif cleaned_ip:
+        try:
+            cleaned_ip = str(ipaddress.ip_address(cleaned_ip))
+        except ValueError:
+            cleaned_ip = ""
+    return {"vendor": vendor, "kind": kind, "username": username, "source_ip": cleaned_ip,
             "command": _clean(command), "result": _clean(result, 32)}
 
 
@@ -275,7 +282,8 @@ def parse(message, vendor=""):
     if not text:
         return None
     first = PARSERS.get(HINTS.get(vendor, ""))
-    for parser in ([first] if first else []) + [p for p in PARSERS.values() if p is not first]:
+    candidates = [first] if first is not None else list(PARSERS.values())
+    for parser in candidates:
         try:
             event = parser(text)
         except Exception:          # a strange message must never stop the receiver

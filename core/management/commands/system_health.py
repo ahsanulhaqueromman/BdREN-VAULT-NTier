@@ -28,15 +28,19 @@ class Command(BaseCommand):
                 cursor.fetchone()
             report("database", True, "connection and simple query succeeded")
         except Exception as exc:
-            report("database", False, str(exc)[:180])
+            report("database", False, f"database connection failed ({type(exc).__name__})")
 
         data_dir = Path(settings.DATA_DIR)
         backup_dir = Path(settings.BACKUP_DIR)
         key = Path(settings.FERNET_KEY_FILE)
         report("data directory", data_dir.is_dir(), str(data_dir))
         report("backup directory", backup_dir.is_dir() and backup_dir.exists(), str(backup_dir))
-        report("encryption key", key.is_file() and key.stat().st_size > 0,
-               "key file exists; keep it protected and separately backed up")
+        import os
+        import stat
+        key_ok = key.is_file() and not key.is_symlink() and key.stat().st_size > 0
+        key_perm_ok = key_ok and (os.name != "posix" or (stat.S_IMODE(key.stat().st_mode) & 0o077) == 0)
+        report("encryption key", key_perm_ok,
+               "key file exists with owner-only permissions" if key_perm_ok else "key file missing or overly permissive")
         try:
             usage = shutil.disk_usage(backup_dir if backup_dir.exists() else data_dir)
             free_pct = (usage.free / usage.total * 100) if usage.total else 0
@@ -45,7 +49,8 @@ class Command(BaseCommand):
         except OSError as exc:
             report("disk free space", False, str(exc))
         report("debug mode", not settings.DEBUG, "DEBUG is off" if not settings.DEBUG else "DEBUG is on; turn it off for production")
-        report("allowed hosts", settings.ALLOWED_HOSTS != ["*"],
-               "explicit host list configured" if settings.ALLOWED_HOSTS != ["*"] else "DJANGO_ALLOWED_HOSTS is wildcard; restrict it before production")
+        hosts_ok = "*" not in settings.ALLOWED_HOSTS
+        report("allowed hosts", hosts_ok,
+               "explicit host list configured" if hosts_ok else "DJANGO_ALLOWED_HOSTS contains wildcard '*'; restrict it before production")
         report("worker limit", 1 <= settings.WORKERS <= settings.MAX_WORKERS, f"WORKERS={settings.WORKERS}; recommended starting value 10; hard cap 20")
         self.stdout.write(f"Health check completed at {timezone.localtime():%Y-%m-%d %H:%M:%S}; checks needing attention: {issues}")

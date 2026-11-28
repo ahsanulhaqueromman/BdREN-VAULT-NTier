@@ -21,7 +21,7 @@ async function radSecret(id){
 }
 const RAD_LEVEL_NOTE={"super-admin":"Full control","read-write":"Limited changes","read-only":"View only"};
 const radFail=(sel,what,e)=>{radDown=e&&e.message||"The RADIUS pages could not load.";$(sel).innerHTML=errorState(`Could not load ${what}`,e)};
-const radKpis=(sel,items)=>{$(sel).innerHTML=items.map(x=>`<div class="kpi"><span>${esc(x[0])}</span><strong class="${x[3]||""}">${typeof x[1]==="number"?fmtNum(x[1]):x[1]}</strong><small>${esc(x[2])}</small></div>`).join("")};
+const radKpis=(sel,items)=>{$(sel).innerHTML=items.map(x=>`<div class="kpi"><span>${esc(x[0])}</span><strong class="${esc(x[3]||"")}">${typeof x[1]==="number"?fmtNum(x[1]):esc(x[1])}</strong><small>${esc(x[2])}</small></div>`).join("")};
 /* access levels are stored in lower case (the FreeRADIUS group name); shown as "Super-admin", "Read-only" */
 const lvLabel=l=>l==="-"||!l?"No level":l.charAt(0).toUpperCase()+l.slice(1);
 const lvOptions=()=>radLevels.map(l=>`<option value="${esc(l)}">${esc(lvLabel(l))}</option>`).join("");
@@ -277,7 +277,7 @@ document.addEventListener("click",async e=>{
   }
   const d=radNas.find(x=>x.id===Number(ds.radShow??ds.radCopy??ds.radNasdel));if(!d)return;
   if(ds.radShow!==undefined){
-    if(radShown.has(d.id))radShown.delete(d.id);
+    if(radShown.has(d.id)){radShown.delete(d.id);radSecrets.delete(d.id)}
     else{try{await radSecret(d.id)}catch(err){return toast(err.message,{type:"error"})}radShown.add(d.id)}
     renderRadNas();return;
   }
