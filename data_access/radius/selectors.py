@@ -148,22 +148,25 @@ def selectable_devices():
 
 
 def _login_columns():
+    import threading
     import time
     from django.db import connections
-    if time.monotonic() - _LOGIN_COLS["at"] > 300:          # re-checked every 5 minutes (after running the script)
-        conn = connections[DB]
-        with conn.cursor() as cur:
-            cols = {c.name.lower() for c in conn.introspection.get_table_description(cur, "radpostauth")}
-            # FreeRADIUS writes authdate in the SERVER's local clock; MySQL NOW() uses the same clock,
-            # so NOW() - UTC_TIMESTAMP() is the offset needed to show the right Bangladesh time.
-            offset = 0
-            try:
-                cur.execute("SELECT TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), NOW())")
-                offset = int(cur.fetchone()[0] or 0)
-            except Exception:
-                pass
-        _LOGIN_COLS.update(at=time.monotonic(), cols=cols, offset=offset)
-    return _LOGIN_COLS["cols"]
+    lock = globals().setdefault("_LOGIN_COLS_LOCK", threading.Lock())
+    with lock:
+        if time.monotonic() - _LOGIN_COLS["at"] > 300:          # re-checked every 5 minutes (after running the script)
+            conn = connections[DB]
+            with conn.cursor() as cur:
+                cols = {c.name.lower() for c in conn.introspection.get_table_description(cur, "radpostauth")}
+                # FreeRADIUS writes authdate in the SERVER's local clock; MySQL NOW() uses the same clock,
+                # so NOW() - UTC_TIMESTAMP() is the offset needed to show the right Bangladesh time.
+                offset = 0
+                try:
+                    cur.execute("SELECT TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), NOW())")
+                    offset = int(cur.fetchone()[0] or 0)
+                except Exception:
+                    pass
+            _LOGIN_COLS.update(at=time.monotonic(), cols=cols, offset=offset)
+        return _LOGIN_COLS["cols"]
 
 
 def device_namer(hostnames=None):

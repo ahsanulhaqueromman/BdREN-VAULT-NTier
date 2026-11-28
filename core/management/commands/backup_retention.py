@@ -27,8 +27,15 @@ class Command(BaseCommand):
             return
         cutoff = timezone.now().timestamp() - timedelta(days=days).total_seconds()
         count = freed = 0
-        for device_dir in (p for p in root.iterdir() if p.is_dir()):
-            snapshots = sorted((p for p in device_dir.rglob('*.txt') if p.is_file()), key=lambda p: (p.stat().st_mtime, str(p)))
+        for device_dir in (p for p in root.iterdir() if p.is_dir() and not p.is_symlink()):
+            try:
+                snapshots = sorted(
+                    (p for p in device_dir.rglob('*.txt') if p.is_file() and not p.is_symlink()),
+                    key=lambda p: p.name,
+                )
+            except OSError as exc:
+                self.stderr.write(f'Could not scan {device_dir}: {exc}')
+                continue
             removed_here = False
             for path in snapshots[:-1]:  # always preserve the latest snapshot for each device
                 try:
@@ -43,7 +50,7 @@ class Command(BaseCommand):
                         path.unlink()
                         removed_here = True
                         for sidecar in (path.with_suffix(path.suffix + '.sha256'), path.with_suffix('.sha256')):
-                            if sidecar.is_file():
+                            if sidecar.is_file() and not sidecar.is_symlink() and root in sidecar.resolve().parents:
                                 sidecar.unlink()
                 except OSError as exc:
                     self.stderr.write(f'Could not process {path}: {exc}')

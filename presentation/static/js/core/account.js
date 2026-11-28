@@ -13,6 +13,7 @@ async function loadMe(){
 }
 $("#outBtn").onclick=async()=>{
   try{const r=await fetch("/logout",{method:"POST",headers:headers(false)});if(!r.ok)throw new Error()}catch(e){toast("Your session could not be closed. Check the connection and try again.",{type:"error",title:"Sign out failed"});return}
+  try{sessionStorage.removeItem("devListCache");localStorage.removeItem("devListCache")}catch(e){}
   location.href="/login?reason=signed-out";
 };
 document.addEventListener("click",e=>{

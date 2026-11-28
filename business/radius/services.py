@@ -190,11 +190,15 @@ def _effective_ips(devices, types, by_role):
     return list(dict.fromkeys(ips))
 
 
+ALL_DEVICES = "*"
+
+
 def _write_effective(username, access, by_role):
-    """Rewrite the user's dbms_user_nas rows (what FreeRADIUS checks) from their grants."""
+    """Rewrite the user's dbms_user_nas rows (what FreeRADIUS checks) from their grants (fail-closed)."""
     UserDevice.objects.filter(username=username).delete()
     if not access["devices"] and not access["types"]:
-        return                                      # no rows = every device
+        UserDevice.objects.create(username=username, nasname=ALL_DEVICES)
+        return
     ips = _effective_ips(access["devices"], access["types"], by_role) or [NO_DEVICE]
     UserDevice.objects.bulk_create([UserDevice(username=username, nasname=ip) for ip in ips], batch_size=2000)
 
@@ -436,7 +440,8 @@ def name_nas_from_syslog(ip, hostname):
     hostname", Huawei / Juniper headers), but only while that entry has no name of its own: added without
     one, its name is its address. A name someone typed is never changed. FreeRADIUS uses the name only as
     a label, so nothing has to restart. Returns True when a name was written."""
-    hostname = (hostname or "").strip()[:32]
+    import re
+    hostname = re.sub(r"[^A-Za-z0-9._-]", "", (hostname or "").strip())[:32]
     if not ip or not hostname or hostname == ip:
         return False
     changed = Nas.objects.filter(nasname=ip).filter(Q(shortname="") | Q(shortname=ip)).update(shortname=hostname)
@@ -504,9 +509,10 @@ def add_nas_devices(addresses_text, names_text, vendor, secret="", description="
             raise ApiError(400, f"Name can be at most 32 characters: {name}")
     if secret and len(secret) < 12:
         raise ApiError(400, "Shared secret needs at least 12 characters (leave it empty to generate a strong one)")
+    if secret and any(ch in secret for ch in ('"', "'", "\\", "\n", "\r", "\t")) or any(ord(ch) < 32 for ch in secret):
+        raise ApiError(400, "Shared secret cannot contain quotes, backslashes, or control characters")
     if len(secret) > 60 or len(description) > 200:
         raise ApiError(400, "Shared secret or description is too long")
-    secret = secret or generate_secret()
 
     added, skipped, seen = [], [], set()
     with transaction.atomic(using=DB):
@@ -518,7 +524,8 @@ def add_nas_devices(addresses_text, names_text, vendor, secret="", description="
             if selectors.nas_exists(addr):
                 skipped.append({"nasname": addr, "name": name, "reason": "already in NAS (left unchanged)"})
                 continue
-            device = create_nas(addr, name, vendor, secret, description)
+            device_secret = secret or generate_secret()
+            device = create_nas(addr, name, vendor, device_secret, description)
             added.append({"id": device.pk, "name": name, "nasname": addr})
         if added:
             set_nas_roles([d["nasname"] for d in added], role)

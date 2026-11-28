@@ -29,14 +29,16 @@ def api(**method_roles):
     def decorator(view):
         @wraps(view)
         def wrapper(request, *args, **kwargs):
+            user = request.user
+            if not user.is_authenticated or not user.is_active:
+                return error_response(401, "Please sign in")
             if request.method not in allowed:
                 response = error_response(405, "Method not allowed")
                 response["Allow"] = ", ".join(allowed)
                 return response
-            user = request.user
-            if not user.is_authenticated:
-                return error_response(401, "Please sign in")
             if not user.has_role(allowed[request.method]):
+                logger.warning("API access denied for user=%s path=%s method=%s",
+                               getattr(user, "username", "-"), request.path, request.method)
                 return error_response(403, "Your role does not allow this action")
             try:
                 return view(request, *args, **kwargs)

@@ -92,8 +92,10 @@ def update_retry_queue(results, intended=(), cancelled=False):
 
 
 def put_settings(values):
-    for key, value in values.items():
-        AppSetting.objects.update_or_create(key=key, defaults={"value": value})
+    from django.db import transaction
+    with transaction.atomic():
+        for key, value in values.items():
+            AppSetting.objects.update_or_create(key=key, defaults={"value": value})
 
 
 def clean_settings(data):
@@ -120,7 +122,7 @@ def clean_settings(data):
         raise ApiError(400, "Schedule interval must be between 5 and 10080 minutes")
     out["sched_every"] = str(every)
     at = data.get("sched_at") or "02:00"
-    if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", at):
+    if not isinstance(at, str) or not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", at):
         raise ApiError(400, "Daily time must look like 02:00")
     out["sched_at"] = at
     raw_days = str(data.get("sched_days", get_setting("sched_days"))).strip()

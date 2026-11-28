@@ -47,12 +47,15 @@ def _is_local(request):
     """Only accept setup from a browser opened directly on the server.
 
     A reverse proxy on the same machine makes REMOTE_ADDR look like localhost for
-    every remote visitor. Also validate the Host header so a public proxied request
-    cannot use the proxy's loopback address to claim it is local.
+    every remote visitor. Reject any request carrying proxy forwarding headers and
+    validate the Host header so a public proxied request cannot claim it is local.
     """
     import ipaddress
     from urllib.parse import urlsplit
 
+    if any(request.META.get(h) for h in ("HTTP_X_FORWARDED_FOR", "HTTP_X_REAL_IP",
+                                         "HTTP_FORWARDED", "HTTP_X_FORWARDED_HOST")):
+        return False
     try:
         remote = ipaddress.ip_address(request.META.get("REMOTE_ADDR", ""))
         host = (urlsplit("//" + (request.get_host() or "")).hostname or "").lower()
@@ -67,6 +70,9 @@ def setup(request):
     Security: until the first administrator exists, whoever opens this page owns the system. So it is
     only served to the server PC itself (http://127.0.0.1:8000/setup) unless DBMS_SETUP_FROM_ANYWHERE=1.
     """
+    from django.db import transaction
+    from database.accounts.models import User
+
     if selectors.any_user_exists():
         return redirect("login")
     if not settings.SETUP_FROM_ANYWHERE and not _is_local(request):
@@ -76,10 +82,14 @@ def setup(request):
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
-        error = services.check_username(username) or services.check_password(password) or \
-            ("Passwords do not match" if password != request.POST.get("confirm", "") else "")
+        error = (services.check_username(username)
+                 or services.check_password(password, user=User(username=username))
+                 or ("Passwords do not match" if password != request.POST.get("confirm", "") else ""))
         if not error:
-            user = services.create_user(username, password, "admin")
+            with transaction.atomic():
+                if User.objects.select_for_update().exists():
+                    return redirect("login")
+                user = services.create_user(username, password, "admin")
             login(request, user, backend=_BACKEND)
             record_audit(request, "setup.first_admin", username, "First administrator created")
             return redirect("/")
@@ -102,9 +112,10 @@ def _browser(request):
 
 def login_view(request):
     """Page: sign in, with a lockout after 5 wrong passwords."""
+    import time
     if not selectors.any_user_exists():
         return redirect("setup")
-    if request.user.is_authenticated:
+    if request.user.is_authenticated and request.user.is_active:
         return redirect(_safe_next(request) or "/")
     error, username = "", ""
     if request.method == "POST":
@@ -119,18 +130,18 @@ def login_view(request):
             if ok and user.is_active:
                 services.clear_failures(ip, username)
                 login(request, user, backend=_BACKEND)
+                request.session["_created_at"] = int(time.time())
                 # "Keep me signed in": the session survives closing the browser; idle sign-out still applies.
                 request.session.set_expiry(settings.SESSION_MINUTES * 60 if request.POST.get("remember") else 0)
                 record_audit(request, "login.success", user.username, f"Signed in · {_browser(request)}")
                 return redirect(_safe_next(request) or "/")
+            services.register_failure(ip, username)
             if ok:
                 record_audit(request, "login.failed", user.username, f"Account is disabled · {_browser(request)}")
-                error = "This account is disabled. Ask an administrator to enable it."
             else:
-                services.register_failure(ip, username)
                 record_audit(request, "login.failed", username[:100],
                              f"{'Wrong password' if user else 'Unknown username'} · {_browser(request)}")
-                error = "The username or password is incorrect. Check both and try again."
+            error = "The username or password is incorrect. Check both and try again."
     return _auth_page(request, title="Sign in", setup=False, button="Sign in",
                       sub="Use your VAULT account to manage network configuration backups.", error=error,
                       username=username)
@@ -169,7 +180,10 @@ def users(request):
     if request.method == "GET":
         return JsonResponse(selectors.user_rows(), safe=False)
     data = parse_json(request)
-    username, role = (data.get("username") or "").strip(), data.get("role", "viewer")
+    raw_user = data.get("username")
+    if not isinstance(raw_user, str):
+        raise ApiError(400, "Username must be text")
+    username, role = raw_user.strip(), data.get("role", "viewer")
     services.create_validated_user(username, data.get("password", ""), role)
     record_audit(request, "user.create", username, f"role={role}")
     return JsonResponse({"ok": True})

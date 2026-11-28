@@ -76,6 +76,8 @@ def menu_for(user):
     return groups
 
 
-def page_urls():
-    """{key: url} for every page, handed to JavaScript so links are never hard-coded twice."""
-    return {p.key: url_of(p) for p in PAGES}
+def page_urls(user=None):
+    """{key: url} for pages the user may open, handed to JavaScript so links are never hard-coded twice."""
+    if user is None:
+        return {p.key: url_of(p) for p in PAGES}
+    return {p.key: url_of(p) for p in PAGES if user.has_role(p.role)}

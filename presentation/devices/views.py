@@ -37,9 +37,8 @@ def devices(request):
 def device_detail(request, pk):
     """PUT: update one device (empty password keeps the saved one). DELETE: remove it (backup files stay)."""
     if request.method == "DELETE":
-        device = selectors.get_device(pk)
+        device = services.delete_device(pk)
         record_audit(request, "device.delete", _label(device), "Device removed; backup files were retained")
-        services.delete_device(pk)
         return JsonResponse({"ok": True})
     data = parse_json(request)
     device = services.update_device(pk, services.clean_payload(data), data.get("credential_id"), user=request.user)
@@ -49,10 +48,18 @@ def device_detail(request, pk):
 
 @api(POST="admin")
 def bulk_delete(request):
-    """Delete the given device ids; an empty list deletes every device. Backup files stay on disk."""
-    ids = parse_json(request).get("ids") or []
-    deleted = services.delete_devices(ids)
-    record_audit(request, "device.bulk_delete", "device inventory", f"deleted={deleted}; all={not ids}")
+    """Delete the given device ids (or all devices when all=true). Backup files stay on disk."""
+    data = parse_json(request)
+    delete_all = data.get("all") is True
+    raw_ids = data.get("ids")
+    if delete_all:
+        ids = []
+    else:
+        if not isinstance(raw_ids, list) or not raw_ids or any(not isinstance(i, int) or isinstance(i, bool) for i in raw_ids):
+            raise ApiError(400, "Provide a list of device IDs or set all=true")
+        ids = raw_ids
+    deleted = services.delete_devices(ids, delete_all=delete_all)
+    record_audit(request, "device.bulk_delete", "device inventory", f"deleted={deleted}; all={delete_all}")
     return JsonResponse({"deleted": deleted})
 
 
@@ -118,7 +125,10 @@ def credential_password(request):
 def apply_credentials(request):
     """Set one username and password on several devices at once."""
     data = parse_json(request)
-    ids = [i for i in (data.get("ids") or []) if isinstance(i, int)]
+    raw_ids = data.get("ids")
+    if not isinstance(raw_ids, list):
+        raise ApiError(400, "ids must be a list of device IDs")
+    ids = [i for i in raw_ids if isinstance(i, int) and not isinstance(i, bool)]
     updated, username = services.apply_credentials(ids, (data.get("username") or "").strip(),
                                                    data.get("password") or "", data.get("credential_id"),
                                                    user=request.user)

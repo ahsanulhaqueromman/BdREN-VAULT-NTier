@@ -18,21 +18,22 @@ ROLE_LABEL = {"admin": "Administrator", "operator": "Operator", "viewer": "Viewe
 
 def _render_page(request, page, status=200, **extra):
     """base.html + the page's template, with the menu, breadcrumb and data the shared scripts need."""
-    allowed = request.user.has_role(page.role)
+    allowed = request.user.is_active and request.user.has_role(page.role)
+    if not allowed:
+        return render(request, "errors/forbidden.html", {"page": page, "denied": True}, status=403)
     context = {
         "page": page,
         "menu": menu_for(request.user),
-        "page_urls": page_urls(),
+        "page_urls": page_urls(request.user),
         "vmeta": vendor_meta(),
         "vendor_menu": vendor_menu(),      # Device type list in the Add / Edit device pop-ups
         "role_label": ROLE_LABEL.get(request.user.role, request.user.role),
         "session_idle_ms": settings.SESSION_MINUTES * 60 * 1000,
         "max_workers": settings.MAX_WORKERS,     # Settings page: parallel SSH sessions limit
-        "denied": not allowed,
+        "denied": False,
         **extra,
     }
-    return render(request, page.template if allowed else "errors/forbidden.html", context,
-                  status=status if allowed else 403)
+    return render(request, page.template, context, status=status)
 
 
 @login_required

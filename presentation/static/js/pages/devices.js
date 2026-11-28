@@ -9,7 +9,7 @@ const vInfo=t=>VENDORS[t]||{label:t,group:"",hint:""};
 const slug=g=>g.toLowerCase().replace(/[^a-z0-9]+/g,"-");
 /* Type column: shows the vendor name only (Cisco, Huawei ...), the full platform name is the tooltip */
 const VENDOR_LOGO={Cisco:"cisco.svg",Huawei:"huawei.svg",Juniper:"juniper.svg",MikroTik:"mikrotik.svg",Fortinet:"fortinet.svg"};
-const brandMark=t=>{const g=vInfo(t).group||t;if(VENDOR_LOGO[g])return `<img src="/static/img/vendors/${VENDOR_LOGO[g]}" alt="${esc(g)} logo" loading="lazy">`;const marks={Cisco:"cisco",Huawei:"H",Juniper:"J",BDCOM:"BD", "V-SOL":"VS", "TP-Link Omada":"TP",MikroTik:"M",Arista:"A",HPE:"HPE",Fortinet:"F",Other:"SSH"};return marks[g]||String(g).slice(0,3).toUpperCase()};
+const brandMark=t=>{const g=vInfo(t).group||t;if(VENDOR_LOGO[g])return `<img src="/static/img/vendors/${VENDOR_LOGO[g]}" alt="${esc(g)} logo" loading="lazy">`;const marks={Cisco:"cisco",Huawei:"H",Juniper:"J",BDCOM:"BD", "V-SOL":"VS", "TP-Link Omada":"TP",MikroTik:"M",Arista:"A",HPE:"HPE",Fortinet:"F",Other:"SSH"};return marks[g]||esc(String(g).slice(0,3).toUpperCase())};
 const vBadge=(t,d)=>{const v=vInfo(t),g=v.group||t,st=d?(devBad(d)?"st-bad":"st-ok"):"";return `<span class="vt v-${slug(g)} ${st}"${d?` data-vid="${d.id}"`:""} title="${esc(v.label)}">${esc(g==="Other"?v.label:g)}</span>`};
 let devs=[];
 /* the five numbers above the table */
@@ -88,11 +88,12 @@ $o("#devList").addEventListener("change",e=>{
   updSel();
 });
 async function loadDevices(){
-  /* show the last list at once from the browser cache, then refresh it */
-  const hit=localStorage.getItem("devListCache");
+  /* show the last list at once from per-tab sessionStorage, then refresh it */
+  try{localStorage.removeItem("devListCache")}catch(e){}
+  const hit=sessionStorage.getItem("devListCache");
   if(hit&&!devs.length&&PAGE==="devices"){try{devs=JSON.parse(hit);renderStats();renderDevices()}catch(e){}}
   devs=await api("/api/devices");
-  try{localStorage.setItem("devListCache",JSON.stringify(devs))}catch(e){}
+  try{sessionStorage.setItem("devListCache",JSON.stringify(devs))}catch(e){}
   [...selected].forEach(i=>{if(!devs.some(d=>d.id===i))selected.delete(i)});
   if(PAGE!=="devices")return;      /* other screens only need the data (search, capacity planner) */
   renderStats();renderDevices();if(!Object.keys(pingMap).length){pingVisible();pingNow()}

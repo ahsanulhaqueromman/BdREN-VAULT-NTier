@@ -61,13 +61,14 @@ async function loadCapacity(){
 }
 function paintCapacity(){
   const box=$("#capPlan");if(!box||capAvg==null)return;
+  const avg=Number(capAvg)||25;
   const cap=+sfrm.elements.workers.max||50,n=devs.length,w=Math.max(1,Math.min(cap,+sfrm.elements.workers.value||1));
   const est=s=>{s=Math.round(s);if(s<90)return s+" seconds";const m=Math.round(s/60);return m<90?m+" minutes":`${Math.floor(m/60)} h ${m%60} min`};
-  const dur=w2=>Math.ceil(n/w2)*capAvg;
-  const target=30*60,rec=Math.min(cap,Math.max(1,Math.ceil(n*capAvg/target)));
+  const dur=w2=>Math.ceil(n/w2)*avg;
+  const target=30*60,rec=Math.min(cap,Math.max(1,Math.ceil(n*avg/target)));
   const over=dur(w)>target&&w<rec;
   box.className="planner "+(over?"warn":"ok");
-  box.innerHTML=n?`<div class="pl-head"><b>Capacity planner</b><span>${capMeasured?`measured ${capAvg} s per device (recent jobs)`:"estimate: 25 s per device until the first job runs"}</span></div>
+  box.innerHTML=n?`<div class="pl-head"><b>Capacity planner</b><span>${capMeasured?`measured ${avg} s per device (recent jobs)`:"estimate: 25 s per device until the first job runs"}</span></div>
     <div class="pl-grid"><span><small>Devices</small><b>${n.toLocaleString("en-US")}</b></span><span><small>Parallel sessions</small><b>${w}</b></span>
     <span><small>Full backup takes about</small><b>${est(dur(w))}</b></span><span><small>Suggested for under 30 min</small><b>${rec}${rec>=50&&dur(50)>target?" (maximum)":""}</b></span></div>
     <p>${over?`With ${w} session${w===1?"":"s"}, backing up all ${n} devices takes about ${est(dur(w))}. Set <b>${rec}</b> to finish in about ${est(dur(rec))}. Check that the server and the devices' AAA can handle that many logins at once.`:

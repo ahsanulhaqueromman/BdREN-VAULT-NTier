@@ -57,7 +57,7 @@ $o("#delSel").onclick=async()=>{
 $o("#delAll").onclick=async()=>{
   if(!devs.length)return toast("The device list is already empty.",{type:"info",title:"Nothing to delete"});
   let r;
-  if(await confirmAction({title:`Delete ALL ${devs.length} devices?`,message:"This cannot be undone. Saved backup files stay on disk.",confirm:"Delete all devices",typed:"DELETE",run:async()=>{r=await api("/api/devices/delete",J("POST",{ids:[]}))}})){pingMap={};toast(r.deleted+" device(s) deleted");sfx.play("del");loadDevices()}
+  if(await confirmAction({title:`Delete ALL ${devs.length} devices?`,message:"This cannot be undone. Saved backup files stay on disk.",confirm:"Delete all devices",typed:"DELETE",run:async()=>{r=await api("/api/devices/delete",J("POST",{all:true}))}})){pingMap={};toast(r.deleted+" device(s) deleted");sfx.play("del");loadDevices()}
 };
 $o("#runAll").onclick=()=>runBackup([]);
 $o("#runSel").onclick=()=>{const ids=[...selected];ids.length?runBackup(ids):toast("Tick the box next to one or more devices first.",{type:"warning",title:"No device selected"})};

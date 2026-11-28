@@ -20,8 +20,14 @@ class User(AbstractUser):
         constraints = [models.UniqueConstraint(Lower("username"), name="accounts_user_username_ci_unique")]
 
     def has_role(self, minimum):
-        """True when this user's role is at least `minimum` ('viewer', 'operator' or 'admin')."""
-        return ROLE_LEVEL[self.role] >= ROLE_LEVEL[minimum]
+        """True when this user is active and their role is at least `minimum` ('viewer', 'operator' or 'admin')."""
+        if not self.is_active:
+            return False
+        user_level = ROLE_LEVEL.get(self.role, 0)
+        req_level = ROLE_LEVEL.get(minimum)
+        if req_level is None:
+            return False
+        return user_level >= req_level
 
     def save(self, *args, **kwargs):
         if self.is_superuser:                # users made with `createsuperuser` are administrators

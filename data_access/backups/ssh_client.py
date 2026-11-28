@@ -185,13 +185,13 @@ def read_paged(conn, cmd, timeout=120, idle=None):
 # `request system reboot` or MikroTik `/system reboot`. We now use an ALLOW-list: the command must
 # start with a read-only verb, contain no command chaining, and may only pipe into display filters.
 SAFE_START = re.compile(
-    r"(?i)^\s*(?:show|display|get|export|/export|/[a-z0-9 /-]+\s+(?:print|export)|more|cat|uci\s+export|"
-    r"list|dir|ls|print|tail|head|type)\b")
+    r"(?i)^\s*(?:show|display|get|export|/export|/[a-z0-9 /-]+\s+(?:print|export)|uci\s+export|"
+    r"list|dir|ls|print)\b")
 SAFE_PIPE_FILTERS = {"display", "include", "exclude", "begin", "section", "grep", "egrep", "except", "match",
                      "find", "count", "no-more", "nomore", "more", "last", "trim", "compare", "resolve"}
-UNSAFE_COMMAND = re.compile(            # second line of defence behind SAFE_START (kept short to avoid false alarms)
+UNSAFE_COMMAND = re.compile(            # second line of defence behind SAFE_START
     r"(?i)(?:^|[\s|])(?:configure|system-view|reload|reboot|erase|delete|shutdown|poweroff|tftp|ftp|scp|sftp|"
-    r"ssh|telnet|ping|traceroute|undo|redirect|tee)\b")
+    r"ssh|telnet|ping|traceroute|undo|redirect|tee|show-sensitive)\b")
 
 
 def command_problem(cmd):
@@ -206,8 +206,9 @@ def command_problem(cmd):
     for extra in parts[1:]:
         if not extra or extra.split()[0].lower() not in SAFE_PIPE_FILTERS:
             return "may only be piped into display filters (include, exclude, begin, section, display ...)"
-    if UNSAFE_COMMAND.search(parts[0]):
-        return "contains a command word that can change or disrupt the device"
+    for segment in parts:
+        if UNSAFE_COMMAND.search(segment):
+            return "contains a command word that can change or disrupt the device"
     return ""
 
 

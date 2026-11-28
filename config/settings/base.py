@@ -114,6 +114,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.ActiveUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.SecurityHeadersMiddleware",
@@ -271,8 +272,8 @@ RETRY_MAX_DAYS = max(1, min(env_int("DBMS_RETRY_MAX_DAYS", 7), 90))   # how long
 # ---------- security switches (all default to the safe choice) ----------
 # First administrator can only be created from the server PC itself (or with `createsuperuser`).
 SETUP_FROM_ANYWHERE = env_flag("DBMS_SETUP_FROM_ANYWHERE")
-# 1 (default) = an administrator may reveal a saved DEVICE password in the device form. 0 = never sent to a browser.
-REVEAL_SAVED_PASSWORDS = env_flag("DBMS_REVEAL_PASSWORDS", True)
+# 0 (default) = saved device passwords are never sent to a browser. Set 1 only if admin reveal is required.
+REVEAL_SAVED_PASSWORDS = env_flag("DBMS_REVEAL_PASSWORDS", False)
 # Optional allow-list of management networks (comma-separated, e.g. 10.0.0.0/8,103.28.121.0/24).
 # When set, SSH and ping go only to addresses inside it. Unset = any ordinary address (see core/netguard.py).
 ALLOWED_DEVICE_NETWORKS = env_list("DBMS_ALLOWED_NETWORKS")
@@ -283,12 +284,16 @@ SSH_HOSTKEY_CHECK = env_flag("DBMS_SSH_HOSTKEY_CHECK", True)
 SSH_KNOWN_HOSTS = DATA_DIR / "known_hosts"
 
 # ---------- logging ----------
+_LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").strip().upper()
+if _LOG_LEVEL not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+    _LOG_LEVEL = "INFO"
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {"plain": {"format": "%(asctime)s %(levelname)-7s %(name)s: %(message)s"}},
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "plain"}},
-    "root": {"handlers": ["console"], "level": os.environ.get("LOG_LEVEL", "INFO").upper()},
+    "root": {"handlers": ["console"], "level": _LOG_LEVEL},
 }
 
 # Optional SMTP settings for backup failure notifications; unset means Django defaults.
@@ -296,6 +301,6 @@ EMAIL_HOST = os.environ.get("DBMS_EMAIL_HOST", "localhost")
 EMAIL_PORT = env_int("DBMS_EMAIL_PORT", 25)
 EMAIL_HOST_USER = os.environ.get("DBMS_EMAIL_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("DBMS_EMAIL_PASSWORD", "")
-EMAIL_USE_TLS = os.environ.get("DBMS_EMAIL_USE_TLS", "0") == "1"
-EMAIL_USE_SSL = os.environ.get("DBMS_EMAIL_USE_SSL", "0") == "1"
+EMAIL_USE_TLS = env_flag("DBMS_EMAIL_USE_TLS")
+EMAIL_USE_SSL = env_flag("DBMS_EMAIL_USE_SSL")
 DEFAULT_FROM_EMAIL = os.environ.get("DBMS_EMAIL_FROM", EMAIL_HOST_USER or "dbms@localhost")

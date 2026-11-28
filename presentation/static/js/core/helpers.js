@@ -352,7 +352,7 @@ document.addEventListener("change",e=>{
 
 /* status text and pill for the "Status" column */
 const LABEL={SUCCESS:"Saved",UNCHANGED:"Unchanged",FAILED:"Failed"};
-const pill=s=>`<span class="pill ${s||""}">${LABEL[s]||"Not run"}</span>`;
+const pill=s=>`<span class="pill ${esc(s||"")}">${LABEL[s]||"Not run"}</span>`;
 
 /* Period picker of the log pages (Authentication Audit, Session Log): a <select> of recent windows plus
    "Custom dates…", which shows a From and a To date. periodQuery() gives the query for the API
@@ -383,11 +383,16 @@ function paintSnd(){const on=sfx.on,b=$("#sndBtn");$("#sndIc").innerHTML=on?SND_
 $("#sndBtn").onclick=()=>{sfx.set(!sfx.on);paintSnd();sfx.play("ok")};
 paintSnd();
 
+const THEMES=["system","light","dark"],THEME_LABEL={system:"Theme: System",light:"Theme: Light",dark:"Theme: Dark"};
+function curTheme(){try{const t=localStorage.getItem("dbms_theme");return THEMES.includes(t)?t:"system"}catch(e){return "system"}}
+function paintTheme(){const t=curTheme(),b=$("#themeBtn");if(!b)return;$("#themeTx").textContent=THEME_LABEL[t];if(t==="system")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t}
+if($("#themeBtn")){$("#themeBtn").onclick=()=>{const next=THEMES[(THEMES.indexOf(curTheme())+1)%THEMES.length];try{if(next==="system")localStorage.removeItem("dbms_theme");else localStorage.setItem("dbms_theme",next)}catch(e){}paintTheme()};paintTheme()}
+
 /* ---- row Action menus (RADIUS Users, NAS, User Management): actMenu(name, buttons) draws an "Action" button and
    keeps the row's own buttons hidden next to it. Opening it shows copies of them in one shared floating menu
    (#actMenu, outside the table so a scrolling table never cuts it off); choosing an item clicks the hidden
    original, so each page's own click handler does the work. ---- */
-const actMenu=(name,items)=>`<button type="button" class="menu-btn" data-actmenu aria-haspopup="menu" aria-expanded="false" aria-label="Actions for ${name}">Action <i aria-hidden="true">&#9662;</i></button><span class="act-items" hidden>${items}</span>`;
+const actMenu=(name,items)=>`<button type="button" class="menu-btn" data-actmenu aria-haspopup="menu" aria-expanded="false" aria-label="Actions for ${esc(name)}">Action <i aria-hidden="true">&#9662;</i></button><span class="act-items" hidden>${items}</span>`;
 let actBox=null,actFrom=null,actAt=0;
 function actClose(){if(!actBox||actBox.hidden)return;actBox.hidden=true;actFrom&&actFrom.setAttribute("aria-expanded","false");actFrom=null}
 function actOpen(btn){

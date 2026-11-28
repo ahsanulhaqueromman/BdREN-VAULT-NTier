@@ -90,7 +90,8 @@ def failing_devices():
 
 def find_by_name_or_ip(value):
     """True when a device has this name or IP (case-insensitive)."""
-    return Device.objects.filter(name__iexact=value).exists() or Device.objects.filter(ip__iexact=value).exists()
+    from django.db.models import Q
+    return Device.objects.filter(Q(name__iexact=value) | Q(ip__iexact=value)).exists()
 
 
 def id_ip_pairs(ids=None):

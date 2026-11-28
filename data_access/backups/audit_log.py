@@ -3,6 +3,7 @@
 Every app records actions with record_audit(request, ...) and reads the history through the functions below;
 no other module queries AuditEvent directly. Never pass passwords or raw device configurations here.
 """
+import re
 from datetime import timedelta
 
 from django.db.models import Q
@@ -11,6 +12,11 @@ from django.utils import timezone
 from database.backups.models import AuditEvent
 
 SIGNIN_ACTIONS = {"login.success": "Signed in", "login.failed": "Failed", "logout": "Signed out"}
+_CTRL_RX = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]+")
+
+
+def _clean_log(value, limit):
+    return _CTRL_RX.sub(" ", "" if value is None else str(value)).strip()[:limit]
 
 
 def record_audit(request, action, target="", detail=""):
@@ -20,8 +26,10 @@ def record_audit(request, action, target="", detail=""):
     if addr and len(addr) > 45:
         addr = None
     AuditEvent.objects.create(
-        username=(getattr(user, "username", "") or "")[:150],
-        action=str(action)[:80], target=str(target)[:255], detail=str(detail)[:2000],
+        username=_clean_log(getattr(user, "username", "") or "", 150),
+        action=_clean_log(action, 80),
+        target=_clean_log(target, 255),
+        detail=_clean_log(detail, 2000),
         remote_addr=addr,
     )
 
@@ -30,7 +38,8 @@ def record_audit(request, action, target="", detail=""):
 def recent_events(limit):
     """Newest audit entries (Activity Logs -> administrative audit trail). Sign-ins, failed sign-ins and
     sign-outs are left out: they have their own list (User Management -> Sign-in history)."""
-    return AuditEvent.objects.exclude(action__in=SIGNIN_ACTIONS)[:limit]
+    safe_limit = min(max(int(limit), 1), 5000)
+    return AuditEvent.objects.exclude(action__in=SIGNIN_ACTIONS)[:safe_limit]
 
 
 def last_signin(username):

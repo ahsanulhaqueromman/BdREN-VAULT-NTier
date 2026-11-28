@@ -84,7 +84,8 @@ def retry_info():
 
 
 def all_settings():
-    return {key: get_setting(key) for key in DEFAULTS}
+    stored = dict(AppSetting.objects.filter(key__in=DEFAULTS.keys()).values_list("key", "value"))
+    return {key: stored.get(key, default) for key, default in DEFAULTS.items()}
 
 
 def _schedule_days(values):
