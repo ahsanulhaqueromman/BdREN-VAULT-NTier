@@ -190,15 +190,11 @@ def _effective_ips(devices, types, by_role):
     return list(dict.fromkeys(ips))
 
 
-ALL_DEVICES = "*"
-
-
 def _write_effective(username, access, by_role):
-    """Rewrite the user's dbms_user_nas rows (what FreeRADIUS checks) from their grants (fail-closed)."""
+    """Rewrite the user's dbms_user_nas rows (what FreeRADIUS checks) from their grants."""
     UserDevice.objects.filter(username=username).delete()
     if not access["devices"] and not access["types"]:
-        UserDevice.objects.create(username=username, nasname=ALL_DEVICES)
-        return
+        return                                      # no rows = every device
     ips = _effective_ips(access["devices"], access["types"], by_role) or [NO_DEVICE]
     UserDevice.objects.bulk_create([UserDevice(username=username, nasname=ip) for ip in ips], batch_size=2000)
 
